@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Estate Client Search</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#29348F', // Primary Blue
+                            600: '#1e2870',
+                            900: '#0c4a6e',
+                            orange: '#F6931D', // Secondary Orange
+                        },
+                        glass: 'rgba(255, 255, 255, 0.9)',
+                        glassDark: 'rgba(15, 23, 42, 0.6)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="apple-touch-icon" href="icon.png">
+
+    <style>
+        body {
+            background-color: #ffffff;
+            color: #0f172a;
+            /* Slate 900 */
+            min-height: 100vh;
+        }
+
+        /* Mobile scroll fix */
+        html,
+        body {
+            overscroll-behavior-y: none;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            /* Slate 200 */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .slide-up {
+            animation: slideUp 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body class="antialiased overflow-x-hidden">
+
+
+
+
+
+    <!-- Hero / Search Section -->
+    <div class="relative min-h-screen flex flex-col items-center pt-[15vh] px-4">
+
+        <!-- Logo / Branding -->
+        <!-- Logo / Branding -->
+        <div class="mb-12 text-center fade-in">
+            <div class="inline-flex items-center justify-center mb-6">
+                <!-- User Provided Logo -->
+                <img src="ORE logo.png" alt="OVID Real Estate"
+                    class="h-48 md:h-64 object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500">
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-brand-500 mb-2">
+                OVID Real Estate
+            </h1>
+            <p class="text-brand-orange text-lg uppercase tracking-widest font-light">Customer Portal</p>
+        </div>
+
+        <!-- Site Progress Updates Section -->
+        <div id="newsSection" class="w-full max-w-4xl mb-8 px-2 hidden fade-in" style="animation-delay: 0.1s;">
+            <div class="flex items-center justify-between mb-4 px-2">
+                <h3 class="text-brand-500 font-bold flex items-center gap-2">
+                    <i data-lucide="radio" class="w-5 h-5 text-brand-orange animate-pulse"></i>
+                    Site Progress Updates
+                </h3>
+                <span class="text-xs text-slate-400 font-medium">Scroll for more</span>
+            </div>
+            <div id="newsFeed" class="flex gap-4 overflow-x-auto pb-4 px-2 scroll-smooth no-scrollbar"
+                style="-ms-overflow-style: none; scrollbar-width: none;">
+                <!-- News cards will be injected here -->
+            </div>
+        </div>
+
+        <!-- Search Container -->
+        <div class="w-full max-w-2xl relative z-10 fade-in" style="animation-delay: 0.1s;">
+            <div class="relative group">
+                <div
+                    class="absolute -inset-1 bg-gradient-to-r from-brand-500 to-brand-orange rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200">
+                </div>
+                <div class="relative">
+                    <input type="text" id="searchInput" placeholder="Search home buyer name..."
+                        class="w-full bg-white text-slate-900 border border-slate-200 rounded-2xl py-4 pl-14 pr-4 shadow-xl shadow-slate-200/50 text-lg focus:outline-none focus:ring-2 focus:ring-brand-500/50 placeholder-slate-400 transition-all"
+                        autocomplete="off">
+                    <div class="absolute left-4 top-4 text-brand-500">
+                        <i data-lucide="search" class="w-6 h-6"></i>
+                    </div>
+                    <div id="loadingIndicator" class="absolute right-4 top-4 hidden">
+                        <i data-lucide="loader-2" class="w-6 h-6 text-brand-orange animate-spin"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Refresh Button -->
+            <div class="mt-4 flex justify-end">
+                <button onclick="fetchData()"
+                    class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-brand-500 hover:border-brand-500 transition-all shadow-sm text-sm font-medium group">
+                    <i data-lucide="refresh-cw"
+                        class="w-4 h-4 group-hover:rotate-180 transition-transform duration-500"></i>
+                    Refresh Data
+                </button>
+            </div>
+
+            <!-- Search Results Dropdown -->
+            <div id="searchResults"
+                class="hidden absolute top-full left-0 right-0 mt-4 bg-white border border-slate-200 rounded-2xl shadow-2xl shadow-slate-300/50 max-h-[60vh] overflow-y-auto overflow-x-hidden z-20">
+                <!-- Results injected here -->
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage"
+                class="hidden mt-4 p-4 bg-red-500/10 border border-red-500/20 text-red-200 rounded-xl text-center text-sm">
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div id="detailsModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" id="modalBackdrop"></div>
+
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+
+                <div class="relative transform overflow-hidden rounded-3xl bg-white border border-slate-200 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-4xl"
+                    id="modalPanel">
+
+                    <!-- Close Button -->
+                    <button id="closeModal"
+                        class="absolute right-4 top-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-all shadow-sm z-50">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+
+                    <!-- Modal Content -->
+                    <div id="modalContent" class="p-0">
+                        <!-- Dynamic Content Injected Here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        lucide.createIcons();
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('Service Worker Registered'))
+                .catch((err) => console.log('SW Failed:', err));
+        }
+    </script>
+</body>
+
+</html>
