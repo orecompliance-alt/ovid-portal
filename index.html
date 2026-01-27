@@ -114,18 +114,23 @@
     <!-- Hero / Search Section -->
     <div class="relative min-h-screen flex flex-col items-center pt-[15vh] px-4">
 
+        <!-- Refresh Indicator (appears on pull) -->
+        <div id="pullIndicator"
+            class="fixed top-4 left-0 right-0 flex justify-center items-center pointer-events-none opacity-0 transition-opacity z-[60]">
+            <div
+                class="bg-brand-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-sm font-medium">
+                <i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i>
+                Syncing Data...
+            </div>
+        </div>
+
         <!-- Logo / Branding -->
-        <!-- Logo / Branding -->
-        <div class="mb-12 text-center fade-in">
-            <div class="inline-flex items-center justify-center mb-6">
+        <div class="mb-4 text-center fade-in">
+            <div class="inline-flex items-center justify-center mb-0">
                 <!-- User Provided Logo -->
                 <img src="ORE logo.png" alt="OVID Real Estate"
-                    class="h-48 md:h-64 object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500">
+                    class="h-40 md:h-56 object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500">
             </div>
-            <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-brand-500 mb-2">
-                OVID Real Estate
-            </h1>
-            <p class="text-brand-orange text-lg uppercase tracking-widest font-light">Customer Portal</p>
         </div>
 
         <!-- Site Progress Updates Section -->
@@ -162,15 +167,7 @@
                 </div>
             </div>
 
-            <!-- Refresh Button -->
-            <div class="mt-4 flex justify-end">
-                <button onclick="fetchData()"
-                    class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-brand-500 hover:border-brand-500 transition-all shadow-sm text-sm font-medium group">
-                    <i data-lucide="refresh-cw"
-                        class="w-4 h-4 group-hover:rotate-180 transition-transform duration-500"></i>
-                    Refresh Data
-                </button>
-            </div>
+
 
             <!-- Search Results Dropdown -->
             <div id="searchResults"

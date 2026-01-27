@@ -13,6 +13,7 @@ const dom = {
     closeBtn: document.getElementById('closeModal'),
     newsSection: document.getElementById('newsSection'),
     newsFeed: document.getElementById('newsFeed'),
+    pullIndicator: document.getElementById('pullIndicator'),
 };
 
 let allData = { clients: [], news: [] };
@@ -21,6 +22,7 @@ let allData = { clients: [], news: [] };
 document.addEventListener('DOMContentLoaded', () => {
     fetchData();
     setupEventListeners();
+    setupPullToRefresh();
 });
 
 function setupEventListeners() {
@@ -29,6 +31,48 @@ function setupEventListeners() {
     dom.backdrop.addEventListener('click', closeModal);
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeModal();
+    });
+}
+
+function setupPullToRefresh() {
+    let startY = 0;
+    const threshold = 150;
+
+    document.addEventListener('touchstart', (e) => {
+        // Only trigger if at the top of the page
+        if (window.scrollY === 0) {
+            startY = e.touches[0].pageY;
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        if (startY === 0 || window.scrollY > 0) return;
+
+        const currentY = e.touches[0].pageY;
+        const diff = currentY - startY;
+
+        if (diff > 50) {
+            dom.pullIndicator.style.opacity = Math.min((diff - 50) / 100, 1);
+            dom.pullIndicator.style.transform = `translateY(${Math.min(diff / 3, 50)}px)`;
+        }
+
+        if (diff > threshold) {
+            // Prevent actual scroll while pulling
+            if (e.cancelable) e.preventDefault();
+        }
+    }, { passive: false });
+
+    document.addEventListener('touchend', (e) => {
+        const diff = e.changedTouches[0].pageY - startY;
+
+        if (window.scrollY === 0 && diff > threshold) {
+            fetchData();
+        }
+
+        // Reset
+        startY = 0;
+        dom.pullIndicator.style.opacity = '0';
+        dom.pullIndicator.style.transform = 'translateY(0)';
     });
 }
 
