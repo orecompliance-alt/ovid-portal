@@ -133,8 +133,8 @@ function renderNews(newsItems) {
                     <span class="px-2 py-0.5 rounded-full bg-orange-100 text-brand-orange text-[10px] font-bold uppercase tracking-wider">${date}</span>
                     <div class="h-1 w-1 rounded-full bg-slate-300"></div>
                 </div>
-                <h4 class="text-brand-500 font-bold text-sm mb-1 line-clamp-1">${headline}</h4>
-                <p class="text-slate-500 text-xs line-clamp-2 leading-relaxed">${text}</p>
+                <h4 class="text-brand-500 font-bold text-sm mb-1">${headline}</h4>
+                <p class="text-slate-500 text-xs leading-relaxed">${text}</p>
             </div>
         `;
     }).join('');
