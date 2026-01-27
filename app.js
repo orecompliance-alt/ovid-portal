@@ -236,6 +236,13 @@ function renderDetails(item) {
         return parseFloat(str.replace(/,/g, '').replace(/[^0-9.-]+/g, "")) || 0;
     };
 
+    // Helper: Format with commas
+    const formatCurrency = (val) => {
+        const num = cleanNumber(val);
+        if (num === 0 && (!val || val === '0')) return '0';
+        return num.toLocaleString();
+    };
+
     // Helper to find first non-zero financial value from a list of potential keys
     const getFinancialValue = (possibleKeys) => {
         for (const key of possibleKeys) {
@@ -255,7 +262,7 @@ function renderDetails(item) {
     let paid = paidObj.num;
     let remaining = remainingObj.num;
 
-    const totalStr = totalObj.str !== '0' ? getValue('TOTAL CONTRACT AMOUNT') || totalObj.str : (getValue('TOTAL CONTRACT AMOUNT') || '0');
+    const totalStr = formatCurrency(totalObj.str !== '0' ? getValue('TOTAL CONTRACT AMOUNT') || totalObj.str : (getValue('TOTAL CONTRACT AMOUNT') || '0'));
 
     // Fix: If Remaining is missing but we have Total and Paid, calculate it.
     if (remaining === 0 && total > 0) {
@@ -284,6 +291,11 @@ function renderDetails(item) {
 
         // Use placeholder for empty/null values instead of skipping
         let displayVal = (val === null || val === undefined || String(val).trim() === '') ? '—' : String(val);
+
+        // Smart Check: If it's a number/amount, format it with commas
+        if (displayVal !== '—' && !isNaN(cleanNumber(displayVal)) && cleanNumber(displayVal) > 1000) {
+            displayVal = formatCurrency(displayVal);
+        }
 
         dynamicFieldsHtml += `
             <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 hover:bg-white hover:shadow-md hover:border-brand-500/30 transition-all group/item">
