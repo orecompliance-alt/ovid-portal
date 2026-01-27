@@ -293,8 +293,15 @@ function renderDetails(item) {
         let displayVal = (val === null || val === undefined || String(val).trim() === '') ? '—' : String(val);
 
         // Smart Check: If it's a number/amount, format it with commas
+        const isMoneyKey = /amount|paid|total|remaining|balance|price|contract/i.test(key);
+        const isPhoneKey = /phone|mobile|tel|contact/i.test(key);
+        const startsWithZero = String(val).trim().startsWith('0');
+
         if (displayVal !== '—' && !isNaN(cleanNumber(displayVal)) && cleanNumber(displayVal) > 1000) {
-            displayVal = formatCurrency(displayVal);
+            // Only format if its a money-related key OR it's not a phone key/phone-like value
+            if (isMoneyKey || (!isPhoneKey && !startsWithZero)) {
+                displayVal = formatCurrency(displayVal);
+            }
         }
 
         dynamicFieldsHtml += `
