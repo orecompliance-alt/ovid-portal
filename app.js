@@ -300,6 +300,14 @@ function renderDetails(item) {
         }).format(num) + ' ETB';
     };
 
+    const formatDate = (val) => {
+        if (!val || typeof val !== 'string') return val;
+        if (val.includes('T') && val.includes('Z')) {
+            return val.split('T')[0];
+        }
+        return val;
+    };
+
     const total = cleanNumber(getValue('TOTAL CONTRACT AMOUNT'));
     const paid = cleanNumber(getValue('COLLECTED AMOUNT/DP'));
     const remaining = total - paid;
@@ -320,6 +328,9 @@ function renderDetails(item) {
         if (ignoredKeys.some(k => k.toLowerCase() === key.toLowerCase())) return;
         let val = item[key];
         let displayVal = (val === null || val === undefined || String(val).trim() === '') ? '—' : String(val);
+
+        // Clean up ISO dates
+        displayVal = formatDate(displayVal);
 
         // Smart Currency Detection
         if (displayVal !== '—' && isCurrencyKey(key) && !isProtectedKey(key)) {
