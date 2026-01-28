@@ -4,16 +4,24 @@ const USER_NAME_KEY = 'ore_user_name';
 
 // GET or CREATE Device ID
 function getDeviceId() {
-    let id = localStorage.getItem(DEVICE_ID_KEY);
-    if (!id) {
-        id = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
-        localStorage.setItem(DEVICE_ID_KEY, id);
+    try {
+        let id = localStorage.getItem(DEVICE_ID_KEY);
+        if (!id) {
+            id = 'DEV-' + Math.random().toString(36).substring(2, 9).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+            localStorage.setItem(DEVICE_ID_KEY, id);
+        }
+        return id;
+    } catch (e) {
+        console.warn("localStorage blocked, using session ID");
+        return 'SES-' + Date.now();
     }
-    return id;
 }
 
 const DEVICE_ID = getDeviceId();
-const USER_NAME = localStorage.getItem(USER_NAME_KEY) || "Unknown User";
+function getUserName() {
+    try { return localStorage.getItem(USER_NAME_KEY) || "Unknown User"; } catch (e) { return "Unknown User"; }
+}
+const USER_NAME = getUserName();
 
 // PASTE YOUR GOOGLE SCRIPT URL HERE AFTER DEPLOYING
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxahv-0UjHWai2VWBdv6eR8Jl6T9UrmIH9R9REoz6jbru0s3zaiNHEXQbwSaluR2rm_/exec';
@@ -64,20 +72,23 @@ function handleRequestAccess() {
     const name = dom.mgrNameInput.value.trim();
     if (!name) return alert("Please enter your name");
 
+    console.log("Requesting access for:", name, "Device:", DEVICE_ID);
+
     dom.btnRequest.disabled = true;
     dom.btnRequest.textContent = "Sending...";
 
     const url = `${SCRIPT_URL}?action=requestAccess&deviceId=${DEVICE_ID}&userName=${encodeURIComponent(name)}`;
 
-    fetch(url)
-        .then(r => r.json())
-        .then(res => {
-            localStorage.setItem(USER_NAME_KEY, name);
+    // Using no-cors to ensure it hits GAS regardless of preflight/browsers
+    fetch(url, { mode: 'no-cors' })
+        .then(() => {
+            console.log("Access request sent successfully (no-cors mode)");
+            try { localStorage.setItem(USER_NAME_KEY, name); } catch (e) { }
             showAccessPending();
         })
         .catch(err => {
-            console.error(err);
-            alert("Failed to send request. Check your connection.");
+            console.error("Request Access Error:", err);
+            alert("Failed to send request. Please check your internet connection.");
             dom.btnRequest.disabled = false;
             dom.btnRequest.textContent = "Request Access";
         });

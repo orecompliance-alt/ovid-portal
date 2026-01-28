@@ -114,8 +114,12 @@ function handleRequest(e) {
 function checkAccess(sheet, id) {
     if (!id) return "None";
     var data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return "None"; // Only headers exist
+
     for (var i = 1; i < data.length; i++) {
-        if (data[i][0].toString() === id) return data[i][2]; // Status column
+        if (data[i][0] && data[i][0].toString() === id) {
+            return data[i][2] || "Pending"; // Return status or default to Pending
+        }
     }
     return "None";
 }
@@ -123,14 +127,18 @@ function checkAccess(sheet, id) {
 function registerDevice(sheet, id, name) {
     var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
-        if (data[i][0].toString() === id) return jsonResponse({ "result": "success", "status": data[i][2] });
+        if (data[i][0] && data[i][0].toString() === id) {
+            return jsonResponse({ "result": "success", "status": data[i][2] || "Pending" });
+        }
     }
     sheet.appendRow([id, name, "Pending", new Date()]);
     return jsonResponse({ "result": "success", "status": "Pending" });
 }
 
 function logAccess(sheet, id, name, action, target) {
-    sheet.appendRow([new Date(), id, name, action, target]);
+    try {
+        sheet.appendRow([new Date(), id || "N/A", name || "Unknown", action || "None", target || "N/A"]);
+    } catch (e) { }
 }
 
 function jsonResponse(data) {
