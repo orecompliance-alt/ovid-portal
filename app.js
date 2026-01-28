@@ -26,46 +26,49 @@ const USER_NAME = getUserName();
 // PASTE YOUR GOOGLE SCRIPT URL HERE AFTER DEPLOYING
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxahv-0UjHWai2VWBdv6eR8Jl6T9UrmIH9R9REoz6jbru0s3zaiNHEXQbwSaluR2rm_/exec';
 
-const dom = {
-    input: document.getElementById('searchInput'),
-    results: document.getElementById('searchResults'),
-    loading: document.getElementById('loadingIndicator'),
-    error: document.getElementById('errorMessage'),
-    modal: document.getElementById('detailsModal'),
-    modalContent: document.getElementById('modalContent'),
-    backdrop: document.getElementById('modalBackdrop'),
-    closeBtn: document.getElementById('closeModal'),
-    newsSection: document.getElementById('newsSection'),
-    newsFeed: document.getElementById('newsFeed'),
-    pullIndicator: document.getElementById('pullIndicator'),
-    // Access UI
-    accessOverlay: document.getElementById('accessOverlay'),
-    requestForm: document.getElementById('requestForm'),
-    pendingStatus: document.getElementById('pendingStatus'),
-    mgrNameInput: document.getElementById('mgrName'),
-    btnRequest: document.getElementById('btnRequest'),
-    displayDeviceId: document.getElementById('displayDeviceId'),
-};
-
-let allData = { clients: [], news: [] };
+const dom = {};
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    // Populate DOM object
+    dom.input = document.getElementById('searchInput');
+    dom.results = document.getElementById('searchResults');
+    dom.loading = document.getElementById('loadingIndicator');
+    dom.error = document.getElementById('errorMessage');
+    dom.modal = document.getElementById('detailsModal');
+    dom.modalContent = document.getElementById('modalContent');
+    dom.backdrop = document.getElementById('modalBackdrop');
+    dom.closeBtn = document.getElementById('closeModal');
+    dom.newsSection = document.getElementById('newsSection');
+    dom.newsFeed = document.getElementById('newsFeed');
+    dom.pullIndicator = document.getElementById('pullIndicator');
+
+    // Access UI
+    dom.accessOverlay = document.getElementById('accessOverlay');
+    dom.requestForm = document.getElementById('requestForm');
+    dom.pendingStatus = document.getElementById('pendingStatus');
+    dom.mgrNameInput = document.getElementById('mgrName');
+    dom.btnRequest = document.getElementById('btnRequest');
+    dom.displayDeviceId = document.getElementById('displayDeviceId');
+
     fetchData();
     setupEventListeners();
     setupPullToRefresh();
 });
 
 function setupEventListeners() {
-    dom.input.addEventListener('input', handleSearch);
-    dom.closeBtn.addEventListener('click', closeModal);
-    dom.backdrop.addEventListener('click', closeModal);
+    if (dom.input) dom.input.addEventListener('input', handleSearch);
+    if (dom.closeBtn) dom.closeBtn.addEventListener('click', closeModal);
+    if (dom.backdrop) dom.backdrop.addEventListener('click', closeModal);
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeModal();
     });
 
     // Access Request
-    dom.btnRequest.addEventListener('click', handleRequestAccess);
+    if (dom.btnRequest) {
+        dom.btnRequest.addEventListener('click', handleRequestAccess);
+    }
 }
 
 function handleRequestAccess() {
@@ -77,40 +80,43 @@ function handleRequestAccess() {
     dom.btnRequest.disabled = true;
     dom.btnRequest.textContent = "Sending...";
 
-    const url = `${SCRIPT_URL}?action=requestAccess&deviceId=${DEVICE_ID}&userName=${encodeURIComponent(name)}`;
+    // Cache-buster added with &v=
+    const url = `${SCRIPT_URL}?action=requestAccess&deviceId=${DEVICE_ID}&userName=${encodeURIComponent(name)}&v=${Date.now()}`;
 
     // Using no-cors to ensure it hits GAS regardless of preflight/browsers
     fetch(url, { mode: 'no-cors' })
         .then(() => {
-            console.log("Access request sent successfully (no-cors mode)");
+            console.log("Access request sent successfully");
+            alert("Access request sent! Please wait for Admin approval.");
             try { localStorage.setItem(USER_NAME_KEY, name); } catch (e) { }
             showAccessPending();
         })
         .catch(err => {
             console.error("Request Access Error:", err);
-            alert("Failed to send request. Please check your internet connection.");
+            alert("Failed to send request. Please check connection.");
             dom.btnRequest.disabled = false;
             dom.btnRequest.textContent = "Request Access";
         });
 }
 
 function showAccessPending() {
-    dom.accessOverlay.classList.remove('hidden');
-    dom.requestForm.classList.add('hidden');
-    dom.pendingStatus.classList.remove('hidden');
-    dom.displayDeviceId.textContent = DEVICE_ID;
+    if (dom.accessOverlay) dom.accessOverlay.classList.remove('hidden');
+    if (dom.requestForm) dom.requestForm.classList.add('hidden');
+    if (dom.pendingStatus) dom.pendingStatus.classList.remove('hidden');
+    if (dom.displayDeviceId) dom.displayDeviceId.textContent = DEVICE_ID;
 }
 
 function showAccessDenied() {
-    dom.accessOverlay.classList.remove('hidden');
-    dom.requestForm.classList.remove('hidden');
-    dom.pendingStatus.classList.add('hidden');
+    if (dom.accessOverlay) dom.accessOverlay.classList.remove('hidden');
+    if (dom.requestForm) dom.requestForm.classList.remove('hidden');
+    if (dom.pendingStatus) dom.pendingStatus.classList.add('hidden');
 }
 
 function fetchData() {
-    dom.loading.classList.remove('hidden');
+    if (dom.loading) dom.loading.classList.remove('hidden');
 
-    const url = `${SCRIPT_URL}?action=getData&deviceId=${DEVICE_ID}&userName=${encodeURIComponent(USER_NAME)}`;
+    // Cache-buster added with &v=
+    const url = `${SCRIPT_URL}?action=getData&deviceId=${DEVICE_ID}&userName=${encodeURIComponent(USER_NAME)}&v=${Date.now()}`;
 
     fetch(url)
         .then(response => {
@@ -118,7 +124,7 @@ function fetchData() {
             return response.json();
         })
         .then(data => {
-            dom.loading.classList.add('hidden');
+            if (dom.loading) dom.loading.classList.add('hidden');
 
             if (data.result === "restricted") {
                 if (data.status === "Pending") {
@@ -131,10 +137,10 @@ function fetchData() {
 
             allData = data || { clients: [], news: [] };
             renderNews(allData.news || []);
-            dom.accessOverlay.classList.add('hidden');
+            if (dom.accessOverlay) dom.accessOverlay.classList.add('hidden');
         })
         .catch(error => {
-            dom.loading.classList.add('hidden');
+            if (dom.loading) dom.loading.classList.add('hidden');
             console.error("Fetch Error:", error);
             showError(`
                 <strong>Connection Failed</strong><br>
