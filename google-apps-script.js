@@ -12,17 +12,21 @@ function doPost(e) {
 }
 
 function handleRequest(e) {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var clientSheet = ss.getSheets()[0];
-    var newsSheet = ss.getSheetByName("News");
-    var accessSheet = ss.getSheetByName("Access") || createAccessSheet(ss);
-    var logSheet = ss.getSheetByName("Logs") || createLogSheet(ss);
-
     try {
+        var ss = SpreadsheetApp.getActiveSpreadsheet();
+        if (!ss) throw new Error("Could not access Google Sheet. Please check script permissions.");
+
+        var clientSheet = ss.getSheets()[0];
+        var newsSheet = ss.getSheetByName("News");
+        var accessSheet = ss.getSheetByName("Access") || createAccessSheet(ss);
+        var logSheet = ss.getSheetByName("Logs") || createLogSheet(ss);
+
         var params = e.parameter || {};
         if (e.postData) {
-            var postParams = JSON.parse(e.postData.contents);
-            for (var key in postParams) params[key] = postParams[key];
+            try {
+                var postParams = JSON.parse(e.postData.contents);
+                for (var key in postParams) params[key] = postParams[key];
+            } catch (jsonErr) { }
         }
 
         var action = params.action || "";
