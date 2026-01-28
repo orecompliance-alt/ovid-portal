@@ -289,7 +289,16 @@ function renderDetails(item) {
         return parseFloat(String(val).replace(/,/g, '').replace(/[^0-9.-]+/g, "")) || 0;
     };
 
-    const formatCurrency = (val) => cleanNumber(val).toLocaleString();
+    const isCurrencyKey = (key) => /amount|paid|total|remaining|balance|price|contract|cost|payment/i.test(key);
+    const isProtectedKey = (key) => /phone|code|date|no\.|id|case|item/i.test(key);
+
+    const formatCurrency = (val) => {
+        const num = cleanNumber(val);
+        return new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(num) + ' ETB';
+    };
 
     const total = cleanNumber(getValue('TOTAL CONTRACT AMOUNT'));
     const paid = cleanNumber(getValue('COLLECTED AMOUNT/DP'));
@@ -299,11 +308,11 @@ function renderDetails(item) {
     const urgencyVal = String(getValue('Urgency') || 'Normal');
     let urgencyColor = 'bg-slate-100 text-slate-600';
     const lowUrg = urgencyVal.toLowerCase();
-    if (lowUrg.includes('red') || lowUrg.includes('high')) urgencyColor = 'bg-rose-500 text-white shadow-lg shadow-rose-200';
-    else if (lowUrg.includes('orange') || lowUrg.includes('med')) urgencyColor = 'bg-orange-500 text-white shadow-lg shadow-orange-200';
-    else if (lowUrg.includes('yellow')) urgencyColor = 'bg-amber-400 text-amber-950 shadow-lg shadow-amber-100';
-    else if (lowUrg.includes('green')) urgencyColor = 'bg-emerald-500 text-white shadow-lg shadow-emerald-200';
-    else if (lowUrg.includes('blue')) urgencyColor = 'bg-blue-500 text-white shadow-lg shadow-blue-200';
+    if (lowUrg.includes('red') || lowUrg.includes('high')) urgencyColor = 'bg-rose-500 text-white';
+    else if (lowUrg.includes('orange') || lowUrg.includes('med')) urgencyColor = 'bg-orange-500 text-white';
+    else if (lowUrg.includes('yellow')) urgencyColor = 'bg-amber-400 text-amber-950';
+    else if (lowUrg.includes('green')) urgencyColor = 'bg-emerald-500 text-white';
+    else if (lowUrg.includes('blue')) urgencyColor = 'bg-blue-500 text-white';
 
     const ignoredKeys = ['NAME', 'Satus', 'Status', 'Code', 'CODE', 'Case', 'id', 'ITEM No.', 'Urgency'];
     let dynamicFieldsHtml = '';
@@ -312,10 +321,9 @@ function renderDetails(item) {
         let val = item[key];
         let displayVal = (val === null || val === undefined || String(val).trim() === '') ? '—' : String(val);
 
-        if (displayVal !== '—' && !isNaN(cleanNumber(displayVal)) && cleanNumber(displayVal) > 1000) {
-            if (/amount|paid|total|remaining|balance|price|contract/i.test(key)) {
-                displayVal = formatCurrency(displayVal);
-            }
+        // Smart Currency Detection
+        if (displayVal !== '—' && isCurrencyKey(key) && !isProtectedKey(key)) {
+            displayVal = formatCurrency(displayVal);
         }
 
         dynamicFieldsHtml += `
