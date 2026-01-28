@@ -180,29 +180,40 @@
         </div>
     </div>
 
-    <!-- Details Modal -->
-    <div id="detailsModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog"
-        aria-modal="true">
-        <!-- Backdrop -->
-        <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" id="modalBackdrop"></div>
+    <!-- Access Request Overlay -->
+    <div id="accessOverlay" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-md"></div>
+        <div class="relative w-full max-w-md bg-white rounded-3xl p-8 shadow-2xl slide-up text-center">
+            <div class="w-20 h-20 bg-brand-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="shield-check" class="w-10 h-10 text-brand-500"></i>
+            </div>
 
-        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div id="requestForm">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">Access Restricted</h2>
+                <p class="text-slate-500 text-sm mb-6">This application is for authorized managers only. Please enter
+                    your name to request access.</p>
 
-                <div class="relative transform overflow-hidden rounded-3xl bg-white border border-slate-200 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-4xl"
-                    id="modalPanel">
+                <input type="text" id="mgrName" placeholder="Your Name"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 mb-4 focus:outline-none focus:ring-2 focus:ring-brand-500/50">
 
-                    <!-- Close Button -->
-                    <button id="closeModal"
-                        class="absolute right-4 top-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-all shadow-sm z-50">
-                        <i data-lucide="x" class="w-6 h-6"></i>
-                    </button>
+                <button id="btnRequest"
+                    class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-200">
+                    Request Access
+                </button>
+            </div>
 
-                    <!-- Modal Content -->
-                    <div id="modalContent" class="p-0">
-                        <!-- Dynamic Content Injected Here -->
-                    </div>
+            <div id="pendingStatus" class="hidden">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">Access Pending</h2>
+                <p class="text-slate-500 text-sm mb-6">Your request has been sent to the Admin. Please wait for
+                    approval.</p>
+                <div class="p-4 bg-orange-50 border border-orange-100 rounded-xl mb-6">
+                    <p class="text-brand-orange text-xs font-bold uppercase mb-1">Device ID:</p>
+                    <p id="displayDeviceId" class="text-slate-600 font-mono text-xs break-all"></p>
                 </div>
+                <button onclick="location.reload()"
+                    class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition-all">
+                    Check Approval Status
+                </button>
             </div>
         </div>
     </div>

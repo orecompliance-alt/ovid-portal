@@ -1,6 +1,22 @@
+// SECURITY & SESSION
+const DEVICE_ID_KEY = 'ore_device_id';
+const USER_NAME_KEY = 'ore_user_name';
+
+// GET or CREATE Device ID
+function getDeviceId() {
+    let id = localStorage.getItem(DEVICE_ID_KEY);
+    if (!id) {
+        id = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+        localStorage.setItem(DEVICE_ID_KEY, id);
+    }
+    return id;
+}
+
+const DEVICE_ID = getDeviceId();
+const USER_NAME = localStorage.getItem(USER_NAME_KEY) || "Unknown User";
+
 // PASTE YOUR GOOGLE SCRIPT URL HERE AFTER DEPLOYING
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxahv-0UjHWai2VWBdv6eR8Jl6T9UrmIH9R9REoz6jbru0s3zaiNHEXQbwSaluR2rm_/exec';
-const SHEET_URL = SCRIPT_URL + '?action=getData';
 
 const dom = {
     input: document.getElementById('searchInput'),
@@ -14,6 +30,13 @@ const dom = {
     newsSection: document.getElementById('newsSection'),
     newsFeed: document.getElementById('newsFeed'),
     pullIndicator: document.getElementById('pullIndicator'),
+    // Access UI
+    accessOverlay: document.getElementById('accessOverlay'),
+    requestForm: document.getElementById('requestForm'),
+    pendingStatus: document.getElementById('pendingStatus'),
+    mgrNameInput: document.getElementById('mgrName'),
+    btnRequest: document.getElementById('btnRequest'),
+    displayDeviceId: document.getElementById('displayDeviceId'),
 };
 
 let allData = { clients: [], news: [] };
@@ -32,73 +55,72 @@ function setupEventListeners() {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeModal();
     });
+
+    // Access Request
+    dom.btnRequest.addEventListener('click', handleRequestAccess);
 }
 
-function setupPullToRefresh() {
-    let startY = 0;
-    const threshold = 150;
+function handleRequestAccess() {
+    const name = dom.mgrNameInput.value.trim();
+    if (!name) return alert("Please enter your name");
 
-    document.addEventListener('touchstart', (e) => {
-        // Only trigger if at the top of the page
-        if (window.scrollY === 0) {
-            startY = e.touches[0].pageY;
-        }
-    }, { passive: true });
+    dom.btnRequest.disabled = true;
+    dom.btnRequest.textContent = "Sending...";
 
-    document.addEventListener('touchmove', (e) => {
-        if (startY === 0 || window.scrollY > 0) return;
+    const url = `${SCRIPT_URL}?action=requestAccess&deviceId=${DEVICE_ID}&userName=${encodeURIComponent(name)}`;
 
-        const currentY = e.touches[0].pageY;
-        const diff = currentY - startY;
+    fetch(url)
+        .then(r => r.json())
+        .then(res => {
+            localStorage.setItem(USER_NAME_KEY, name);
+            showAccessPending();
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Failed to send request. Check your connection.");
+            dom.btnRequest.disabled = false;
+            dom.btnRequest.textContent = "Request Access";
+        });
+}
 
-        if (diff > 50) {
-            dom.pullIndicator.style.opacity = Math.min((diff - 50) / 100, 1);
-            dom.pullIndicator.style.transform = `translateY(${Math.min(diff / 3, 50)}px)`;
-        }
+function showAccessPending() {
+    dom.accessOverlay.classList.remove('hidden');
+    dom.requestForm.classList.add('hidden');
+    dom.pendingStatus.classList.remove('hidden');
+    dom.displayDeviceId.textContent = DEVICE_ID;
+}
 
-        if (diff > threshold) {
-            // Prevent actual scroll while pulling
-            if (e.cancelable) e.preventDefault();
-        }
-    }, { passive: false });
-
-    document.addEventListener('touchend', (e) => {
-        const diff = e.changedTouches[0].pageY - startY;
-
-        if (window.scrollY === 0 && diff > threshold) {
-            fetchData();
-        }
-
-        // Reset
-        startY = 0;
-        dom.pullIndicator.style.opacity = '0';
-        dom.pullIndicator.style.transform = 'translateY(0)';
-    });
+function showAccessDenied() {
+    dom.accessOverlay.classList.remove('hidden');
+    dom.requestForm.classList.remove('hidden');
+    dom.pendingStatus.classList.add('hidden');
 }
 
 function fetchData() {
     dom.loading.classList.remove('hidden');
 
-    fetch(SHEET_URL)
+    const url = `${SCRIPT_URL}?action=getData&deviceId=${DEVICE_ID}&userName=${encodeURIComponent(USER_NAME)}`;
+
+    fetch(url)
         .then(response => {
             if (!response.ok) throw new Error(`Network response was not ok (Status: ${response.status})`);
             return response.json();
         })
         .then(data => {
             dom.loading.classList.add('hidden');
+
+            if (data.result === "restricted") {
+                if (data.status === "Pending") {
+                    showAccessPending();
+                } else {
+                    showAccessDenied();
+                }
+                return;
+            }
+
             allData = data || { clients: [], news: [] };
-
-            console.log("Loaded clients:", allData.clients?.length || 0);
-            console.log("Loaded news:", allData.news?.length || 0);
-
-            if (allData.clients?.length > 0) {
-                console.log("Client Data structure (Keys):", Object.keys(allData.clients[0]));
-            }
-            if (allData.news?.length > 0) {
-                console.log("News Data structure (Keys):", Object.keys(allData.news[0]));
-            }
-
             renderNews(allData.news || []);
+            dom.accessOverlay.classList.add('hidden');
         })
         .catch(error => {
             dom.loading.classList.add('hidden');
@@ -122,7 +144,6 @@ function handleSearch(e) {
     const matches = (allData.clients || []).filter(row => {
         const nameVal = row['NAME'];
         const name = nameVal ? String(nameVal).toLowerCase() : '';
-        // Also search phone or code if needed
         return name.includes(query);
     });
 
@@ -135,18 +156,15 @@ function renderNews(newsItems) {
         return;
     }
 
-    // Helper to convert Google Drive links to direct image links
     const formatImageUrl = (url) => {
         if (!url || typeof url !== 'string') return '';
         const trimmedUrl = url.trim();
         if (trimmedUrl.includes('drive.google.com')) {
-            // Updated regex to catch more drive formats
             const match = trimmedUrl.match(/\/d\/(.+?)\/(view|edit|\?|#|$)/) ||
                 trimmedUrl.match(/id=(.+?)(&|$)/) ||
                 trimmedUrl.match(/\/file\/d\/(.+?)\//);
             if (match && match[1]) {
                 const id = match[1];
-                // Using the thumbnail endpoint is much more reliable for public embedding
                 return `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
             }
         }
@@ -154,7 +172,6 @@ function renderNews(newsItems) {
     };
 
     const html = newsItems.map(item => {
-        // Case-insensitive lookups for News headers
         const getNewsVal = (keyName) => {
             const k = Object.keys(item).find(k => k.trim().toLowerCase() === keyName.toLowerCase());
             return k ? item[k] : null;
@@ -169,9 +186,7 @@ function renderNews(newsItems) {
         return `
             <div class="flex-shrink-0 w-72 bg-white rounded-2xl border border-slate-100 shadow-lg shadow-slate-200/50 p-4 transition-all hover:shadow-xl hover:-translate-y-1">
                 ${img ? `<div class="w-full h-32 rounded-xl mb-3 overflow-hidden bg-slate-100 flex items-center justify-center">
-                    <img src="${img}" class="w-full h-full object-cover" 
-                        onload="console.log('Image loaded:', this.src)"
-                        onerror="console.error('Image failed to load:', this.src); this.style.display='none'; this.parentElement.innerHTML='<div class=\'text-[10px] text-slate-400\'>Image restricted</div>'">
+                    <img src="${img}" class="w-full h-full object-cover">
                 </div>` : ''}
                 <div class="flex items-center gap-2 mb-2">
                     <span class="px-2 py-0.5 rounded-full bg-orange-100 text-brand-orange text-[10px] font-bold uppercase tracking-wider">${date}</span>
@@ -219,236 +234,103 @@ function renderResults(matches) {
     dom.results.innerHTML = html;
     dom.results.classList.remove('hidden');
     lucide.createIcons();
-
-    // Add click listeners to items (already done inline with onclick for simplicity, or add generic delegation)
-    // Note: The inline `onclick="openDetails(...)"` requires `openDetails` to be global.
 }
 
-// Make global for inline onclick
+// Global openDetails
 window.openDetails = function (id) {
-    if (!id || id === 'undefined') {
-        console.error("Invalid ID passed to openDetails:", id);
-        return;
-    }
-
-    // Robust ID matching
-    const item = (allData.clients || []).find(r => {
-        // Try exact match first
-        if (r['ITEM No.'] == id) return true;
-
-        // Try case-insensitive and trimmed match for the ID key
-        const idKey = Object.keys(r).find(k => k.trim().toLowerCase() === 'item no.');
-        return idKey && r[idKey] == id;
-    });
-
-    if (!item) {
-        console.warn("Item not found for ID:", id, "Available IDs:", (allData.clients || []).slice(0, 5).map(r => r['ITEM No.']));
-        return;
-    }
-
-    try {
-        renderDetails(item);
-        dom.modal.classList.remove('hidden');
-    } catch (err) {
-        console.error("Error in renderDetails:", err);
-        showError("Failed to render item details. Check console for details.");
-    }
+    if (!id || id === 'undefined') return;
+    const item = (allData.clients || []).find(r => r['ITEM No.'] == id);
+    if (!item) return;
+    renderDetails(item);
+    dom.modal.classList.remove('hidden');
 }
 
 function closeModal() {
     dom.modal.classList.add('hidden');
 }
 
-
-
 function renderDetails(item) {
-    console.log("Rendering details for:", item['NAME']);
-    console.table(item); // Debugging: Show all received data in console table
-
-    // Helper: Case-insensitive value lookup
-    const getValue = (keyName) => {
-        if (!item) return null;
-        const key = Object.keys(item).find(k => k.trim().toLowerCase() === keyName.toLowerCase().trim());
-        return key ? item[key] : null;
+    const getValue = (key) => {
+        const k = Object.keys(item).find(i => i.trim().toLowerCase() === key.toLowerCase());
+        return k ? item[k] : null;
     };
 
-    // 1. Prepare Data for Chart
     const cleanNumber = (val) => {
         if (typeof val === 'number') return val;
         if (!val) return 0;
-        const str = String(val);
-        return parseFloat(str.replace(/,/g, '').replace(/[^0-9.-]+/g, "")) || 0;
+        return parseFloat(String(val).replace(/,/g, '').replace(/[^0-9.-]+/g, "")) || 0;
     };
 
-    // Helper: Format with commas
-    const formatCurrency = (val) => {
-        const num = cleanNumber(val);
-        if (num === 0 && (!val || val === '0')) return '0';
-        return num.toLocaleString();
-    };
+    const formatCurrency = (val) => cleanNumber(val).toLocaleString();
 
-    // Helper to find first non-zero financial value from a list of potential keys
-    const getFinancialValue = (possibleKeys) => {
-        for (const key of possibleKeys) {
-            const val = getValue(key);
-            const num = cleanNumber(val);
-            if (num > 0) return { num, str: val };
-        }
-        return { num: 0, str: '0' };
-    };
-
-    // Robust access using fuzzy key matching
-    const totalObj = getFinancialValue(['TOTAL CONTRACT AMOUNT', 'Total Contract Amount', 'Target Amount']);
-    const paidObj = getFinancialValue(['COLLECTED AMOUNT/DP', 'Collected', 'Amount Paid', 'Paid']);
-    const remainingObj = getFinancialValue(['REMAINING AMOUNT', 'Remaining', 'Balance']);
-
-    const total = totalObj.num;
-    let paid = paidObj.num;
-    let remaining = remainingObj.num;
-
-    const totalStr = formatCurrency(totalObj.str !== '0' ? getValue('TOTAL CONTRACT AMOUNT') || totalObj.str : (getValue('TOTAL CONTRACT AMOUNT') || '0'));
-
-    // Fix: If Remaining is missing but we have Total and Paid, calculate it.
-    if (remaining === 0 && total > 0) {
-        remaining = total - paid;
-    }
-    // Fix: If Paid is missing, calculate from Total - Remaining
-    if (paid === 0 && total > 0 && remaining > 0) {
-        paid = total - remaining;
-    }
-
+    const total = cleanNumber(getValue('TOTAL CONTRACT AMOUNT'));
+    const paid = cleanNumber(getValue('COLLECTED AMOUNT/DP'));
+    const remaining = total - paid;
     const hasFinancials = total > 0;
 
-    // 2. Build Dynamic Grid Logic
-    // Explicitly defining keys to ignore. 
-    // REMOVED Financial keys ('TOTAL CONTRACT AMOUNT' etc) from here so they show up in the grid as a failsafe.
     const ignoredKeys = ['NAME', 'Satus', 'Status', 'Code', 'CODE', 'Case', 'id', 'ITEM No.', 'Urgency'];
-
     let dynamicFieldsHtml = '';
-    const itemKeys = Object.keys(item);
-    console.log("Found " + itemKeys.length + " keys in item");
-
-    itemKeys.forEach(key => {
+    Object.keys(item).forEach(key => {
+        if (ignoredKeys.some(k => k.toLowerCase() === key.toLowerCase())) return;
         let val = item[key];
-        // Skip only if key is truly empty or in ignored list
-        if (!key || key.trim() === '' || ignoredKeys.some(k => k.toLowerCase() === key.toLowerCase())) return;
-
-        // Use placeholder for empty/null values instead of skipping
         let displayVal = (val === null || val === undefined || String(val).trim() === '') ? '—' : String(val);
 
-        // Smart Check: If it's a number/amount, format it with commas
-        const isMoneyKey = /amount|paid|total|remaining|balance|price|contract/i.test(key);
-        const isPhoneKey = /phone|mobile|tel|contact/i.test(key);
-        const startsWithZero = String(val).trim().startsWith('0');
-
         if (displayVal !== '—' && !isNaN(cleanNumber(displayVal)) && cleanNumber(displayVal) > 1000) {
-            // Only format if its a money-related key OR it's not a phone key/phone-like value
-            if (isMoneyKey || (!isPhoneKey && !startsWithZero)) {
+            if (/amount|paid|total|remaining|balance|price|contract/i.test(key)) {
                 displayVal = formatCurrency(displayVal);
             }
         }
 
         dynamicFieldsHtml += `
-            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 hover:bg-white hover:shadow-md hover:border-brand-500/30 transition-all group/item">
-                <p class="text-slate-400 text-[10px] uppercase tracking-wider mb-1 font-semibold group-hover/item:text-brand-500 transition-colors">${key}</p>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 transition-all hover:bg-white hover:shadow-md">
+                <p class="text-slate-400 text-[10px] uppercase tracking-wider mb-1 font-semibold">${key}</p>
                 <p class="text-slate-800 font-medium text-sm md:text-base break-words">${displayVal}</p>
             </div>
         `;
     });
 
-    // Urgency Logic
-    const urgencyVal = getValue('Urgency');
-    let urgencyBadge = '';
-
-    if (urgencyVal !== null && urgencyVal !== undefined && String(urgencyVal).trim() !== '') {
-        const u = String(urgencyVal).toLowerCase();
-        let uColor = 'border-slate-600 bg-slate-800 text-slate-300';
-
-        if (u.includes('red') || u.includes('high')) uColor = 'border-red-200 bg-red-50 text-red-700';
-        else if (u.includes('yellow') || u.includes('med')) uColor = 'border-yellow-200 bg-yellow-50 text-yellow-700';
-        else if (u.includes('green') || u.includes('low')) uColor = 'border-emerald-200 bg-emerald-50 text-emerald-700';
-
-        urgencyBadge = `
-            <div class="mt-4 sm:mt-0 px-4 py-2 rounded-xl border ${uColor} flex items-center gap-2 self-start sm:self-auto">
-                <i data-lucide="alert-circle" class="w-4 h-4"></i>
-                <div>
-                    <p class="text-[10px] uppercase tracking-wide opacity-75">Urgency</p>
-                    <p class="font-bold capitalize">${urgencyVal}</p>
-                </div>
-            </div>
-        `;
-    }
-
-    // Status Styling
-    const rawStatus = getValue('Satus') || getValue('Status') || 'Active';
-    const statusVal = String(rawStatus);
-    const statusColor = statusVal.toLowerCase().includes('sold')
-        ? 'text-green-700 bg-green-100 border-green-200'
-        : 'text-brand-600 bg-blue-50 border-blue-200';
-
-    const codeVal = getValue('CODE') || getValue('Code') || 'No Code';
+    const statusVal = String(getValue('Satus') || 'Active');
+    const statusColor = statusVal.toLowerCase().includes('sold') ? 'text-green-700 bg-green-100' : 'text-brand-600 bg-blue-50';
 
     const content = `
-        <!-- Header -->
-        <div class="relative bg-white p-6 sm:p-8 flex flex-col gap-6 border-b border-slate-100 shadow-sm z-10">
-            
-            <!-- Back Navigation for Mobile/Mobile-first -->
-            <button onclick="closeModal()" class="flex items-center gap-2 text-brand-500 hover:text-brand-600 font-medium transition-colors w-fit group">
+        <div class="relative bg-white p-6 sm:p-8 flex flex-col gap-6 border-b border-slate-100">
+            <button onclick="closeModal()" class="flex items-center gap-2 text-brand-500 font-medium group">
                 <i data-lucide="arrow-left" class="w-5 h-5 group-hover:-translate-x-1 transition-transform"></i>
-                <span>Back to Search</span>
+                <span>Back</span>
             </button>
-
             <div class="flex flex-col md:flex-row justify-between items-start gap-4">
                 <div class="flex-1">
                     <h2 class="text-2xl md:text-3xl font-bold text-brand-500 mb-2">${getValue('NAME')}</h2>
-                    <div class="flex flex-wrap items-center gap-2 mb-2">
-                        <span class="px-3 py-1 rounded-full text-sm border ${statusColor} font-bold shadow-sm">${statusVal}</span>
-                        <span class="px-3 py-1 rounded-full text-sm border border-slate-200 text-slate-600 bg-slate-50 font-mono">${codeVal}</span>
-                        
-                        <!-- Need Update Button -->
-                        <button onclick="requestUpdate('${item['ITEM No.']}')" id="btn-update-${item['ITEM No.']}" class="ml-2 px-3 py-1 bg-brand-orange hover:bg-orange-600 text-white text-xs rounded-full transition-colors flex items-center gap-1 shadow-md shadow-orange-200">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="px-3 py-1 rounded-full text-sm font-bold ${statusColor}">${statusVal}</span>
+                        <span class="px-3 py-1 rounded-full text-sm border bg-slate-50 font-mono">${getValue('CODE') || '#'}</span>
+                        <button onclick="requestUpdate('${item['ITEM No.']}')" id="btn-update-${item['ITEM No.']}" class="ml-2 px-3 py-1 bg-brand-orange text-white text-xs rounded-full flex items-center gap-1">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i> Need Update
                         </button>
                     </div>
                 </div>
-                
-                ${urgencyBadge}
-
-                 <!-- Financial Summary Chart (Compact) -->
-                 ${hasFinancials ? `
-                    <div class="w-full md:w-48 h-32 flex items-center justify-center bg-slate-50 rounded-xl p-2 border border-slate-200 shrink-0">
-                        <canvas id="financeChart"></canvas>
-                    </div>
-                 ` : ''}
+                ${hasFinancials ? `<div class="w-full md:w-48 h-32 flex items-center justify-center bg-slate-50 rounded-xl p-2 border shrink-0">
+                    <canvas id="financeChart"></canvas>
+                </div>` : ''}
             </div>
         </div>
-
-        <!-- Scrollable Body -->
         <div class="p-6 sm:p-8 max-h-[60vh] overflow-y-auto">
-            
-            <!-- Financial Check -->
             ${hasFinancials ? `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div class="bg-brand-500 text-white p-4 rounded-2xl relative overflow-hidden shadow-lg shadow-blue-200">
-                    <div class="absolute inset-0 bg-white/10"></div>
-                    <p class="text-blue-100 text-xs uppercase mb-1 relative z-10 font-medium">Total Contract</p>
-                    <p class="text-xl md:text-2xl font-bold relative z-10">${totalStr}</p>
+                <div class="bg-brand-500 text-white p-4 rounded-2xl">
+                    <p class="text-blue-100 text-xs uppercase mb-1">Total Contract</p>
+                    <p class="text-xl md:text-2xl font-bold">${formatCurrency(total)}</p>
                 </div>
-                <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl">
+                <div class="bg-emerald-50 text-emerald-700 p-4 rounded-2xl border border-emerald-200">
                     <p class="text-emerald-600 text-xs uppercase mb-1 font-bold">Paid / DP</p>
-                    <p class="text-xl md:text-2xl font-bold text-emerald-700">${Number(paid).toLocaleString()}</p>
+                    <p class="text-xl md:text-2xl font-bold">${formatCurrency(paid)}</p>
                 </div>
-                <div class="bg-rose-50 border border-rose-200 p-4 rounded-2xl">
+                <div class="bg-rose-50 text-rose-700 p-4 rounded-2xl border border-rose-200">
                     <p class="text-rose-600 text-xs uppercase mb-1 font-bold">Remaining</p>
-                    <p class="text-xl md:text-2xl font-bold text-rose-700">${Number(remaining).toLocaleString()}</p>
+                    <p class="text-xl md:text-2xl font-bold">${formatCurrency(remaining)}</p>
                 </div>
             </div>
             ` : ''}
-
-            <h3 class="text-lg font-semibold text-brand-500 mb-4 flex items-center gap-2">
-                <i data-lucide="layout-grid" class="w-5 h-5 text-brand-orange"></i> Customer Details
-            </h3>
-            
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 ${dynamicFieldsHtml}
             </div>
@@ -458,91 +340,66 @@ function renderDetails(item) {
     dom.modalContent.innerHTML = content;
     lucide.createIcons();
 
-    // Render Chart if elements exist
-    try {
-        if (hasFinancials) {
-            const ctx = document.getElementById('financeChart');
-            if (ctx) {
-                // ... (Chart initialization remains the same)
-                new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Paid', 'Remaining'],
-                        datasets: [{
-                            data: [paid, remaining],
-                            backgroundColor: ['#10b981', '#f43f5e'], // Emerald-500, Rose-500
-                            borderWidth: 0,
-                            hoverOffset: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function (context) {
-                                        let label = context.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        if (context.parsed !== null) {
-                                            label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'ETB' }).format(context.parsed).replace('ETB', '');
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        },
-                        cutout: '65%',
-                    }
-                });
-            }
+    if (hasFinancials) {
+        const ctx = document.getElementById('financeChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Paid', 'Remaining'],
+                    datasets: [{
+                        data: [paid, remaining],
+                        backgroundColor: ['#10b981', '#f43f5e'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { cutout: '65%', plugins: { legend: { display: false } } }
+            });
         }
-    } catch (chartError) {
-        console.error("Chart.js failed to initialize:", chartError);
     }
 }
 
-// Make global
 window.requestUpdate = function (id) {
     const btn = document.getElementById(`btn-update-${id}`);
-
-    // UI Loading State
-    const originalText = btn.innerHTML;
+    const original = btn.innerHTML;
     btn.innerHTML = `<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Sending...`;
     btn.disabled = true;
     lucide.createIcons();
 
-    // Send GET Request (Easier to debug)
-    const targetUrl = `${SCRIPT_URL}?id=${encodeURIComponent(id)}&action=request_update`;
+    const url = `${SCRIPT_URL}?id=${id}&action=request_update&deviceId=${DEVICE_ID}&userName=${encodeURIComponent(USER_NAME)}`;
 
-    fetch(targetUrl, {
-        method: 'GET',
-        mode: 'no-cors'
-        // no-cors is still needed because GAS doesn't send CORS headers for anonymous simple GETs either usually, 
-        // but GET is safer and easier to test manually.
-    }).then(() => {
-        // Assume success if no network error
+    fetch(url, { mode: 'no-cors' }).then(() => {
         btn.innerHTML = `<i data-lucide="check" class="w-3 h-3"></i> Requested`;
-        btn.classList.remove('bg-slate-700', 'hover:bg-slate-600');
-        btn.classList.add('bg-green-600', 'text-white');
+        btn.className = "ml-2 px-3 py-1 bg-green-600 text-white text-xs rounded-full flex items-center gap-1";
         lucide.createIcons();
-    }).catch(err => {
-        console.error(err);
-        btn.innerHTML = `<i data-lucide="x" class="w-3 h-3"></i> Error`;
-        btn.classList.add('bg-red-600');
+    }).catch(() => {
+        btn.innerHTML = original;
         btn.disabled = false;
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.classList.remove('bg-red-600');
-            lucide.createIcons();
-        }, 3000);
+        lucide.createIcons();
     });
 };
 
+function setupPullToRefresh() {
+    let startY = 0;
+    const threshold = 150;
+    document.addEventListener('touchstart', (e) => { if (window.scrollY === 0) startY = e.touches[0].pageY; }, { passive: true });
+    document.addEventListener('touchmove', (e) => {
+        if (startY === 0 || window.scrollY > 0) return;
+        const diff = e.touches[0].pageY - startY;
+        if (diff > 50) {
+            dom.pullIndicator.style.opacity = Math.min((diff - 50) / 100, 1);
+            dom.pullIndicator.style.transform = `translateY(${Math.min(diff / 3, 50)}px)`;
+        }
+    }, { passive: true });
+    document.addEventListener('touchend', (e) => {
+        if (window.scrollY === 0 && e.changedTouches[0].pageY - startY > threshold) fetchData();
+        startY = 0;
+        dom.pullIndicator.style.opacity = '0';
+        dom.pullIndicator.style.transform = 'translateY(0)';
+    });
+}
+
 function showError(msg) {
-    dom.error.textContent = msg;
+    dom.error.innerHTML = msg;
     dom.error.classList.remove('hidden');
 }
