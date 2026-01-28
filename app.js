@@ -27,6 +27,7 @@ const USER_NAME = getUserName();
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxahv-0UjHWai2VWBdv6eR8Jl6T9UrmIH9R9REoz6jbru0s3zaiNHEXQbwSaluR2rm_/exec';
 
 const dom = {};
+let allData = { clients: [], news: [] };
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -255,11 +256,21 @@ function renderResults(matches) {
 
 // Global openDetails
 window.openDetails = function (id) {
-    if (!id || id === 'undefined') return;
-    const item = (allData.clients || []).find(r => r['ITEM No.'] == id);
-    if (!item) return;
+    if (!id || id === 'undefined') {
+        console.warn("Invalid ID passed to openDetails:", id);
+        return;
+    }
+
+    console.log("Opening details for ID:", id);
+    const item = (allData.clients || []).find(r => String(r['ITEM No.']) === String(id));
+
+    if (!item) {
+        console.error("Could not find client with ID:", id, "Available IDs:", allData.clients.map(c => c['ITEM No.']));
+        return;
+    }
+
     renderDetails(item);
-    dom.modal.classList.remove('hidden');
+    if (dom.modal) dom.modal.classList.remove('hidden');
 }
 
 function closeModal() {
