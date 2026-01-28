@@ -41,11 +41,13 @@ function handleRequest(e) {
 
         // 3. Security Check: Validate Device ID
         var accessStatus = checkAccess(accessSheet, deviceId);
-        if (accessStatus !== "Approved") {
+        var normalizedStatus = accessStatus.toString().toLowerCase().trim();
+
+        if (normalizedStatus !== "approved" && normalizedStatus !== "active") {
             return jsonResponse({
                 "result": "restricted",
                 "status": accessStatus,
-                "message": accessStatus === "Pending" ? "Your access request is pending approval." : "Access Denied. Please request access."
+                "message": normalizedStatus === "pending" ? "Your access request is pending approval." : "Access Denied. Please request access."
             });
         }
 
