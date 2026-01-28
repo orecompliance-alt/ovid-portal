@@ -296,6 +296,10 @@ function renderDetails(item) {
     const remaining = total - paid;
     const hasFinancials = total > 0;
 
+    const urgencyVal = String(getValue('Urgency') || 'Normal');
+    const urgencyColor = urgencyVal.toLowerCase().includes('high') ? 'bg-red-100 text-red-700' :
+        urgencyVal.toLowerCase().includes('med') ? 'bg-orange-100 text-brand-orange' : 'bg-slate-100 text-slate-600';
+
     const ignoredKeys = ['NAME', 'Satus', 'Status', 'Code', 'CODE', 'Case', 'id', 'ITEM No.', 'Urgency'];
     let dynamicFieldsHtml = '';
     Object.keys(item).forEach(key => {
@@ -317,7 +321,7 @@ function renderDetails(item) {
         `;
     });
 
-    const statusVal = String(getValue('Satus') || 'Active');
+    const statusVal = String(getValue('Satus') || getValue('Status') || 'Active');
     const statusColor = statusVal.toLowerCase().includes('sold') ? 'text-green-700 bg-green-100' : 'text-brand-600 bg-blue-50';
 
     const content = `
@@ -331,6 +335,7 @@ function renderDetails(item) {
                     <h2 class="text-2xl md:text-3xl font-bold text-brand-500 mb-2">${getValue('NAME')}</h2>
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="px-3 py-1 rounded-full text-sm font-bold ${statusColor}">${statusVal}</span>
+                        <span class="px-3 py-1 rounded-full text-sm font-bold ${urgencyColor}">${urgencyVal}</span>
                         <span class="px-3 py-1 rounded-full text-sm border bg-slate-50 font-mono">${getValue('CODE') || '#'}</span>
                         <button onclick="requestUpdate('${item['ITEM No.']}')" id="btn-update-${item['ITEM No.']}" class="ml-2 px-3 py-1 bg-brand-orange text-white text-xs rounded-full flex items-center gap-1">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i> Need Update
