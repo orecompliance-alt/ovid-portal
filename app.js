@@ -297,8 +297,13 @@ function renderDetails(item) {
     const hasFinancials = total > 0;
 
     const urgencyVal = String(getValue('Urgency') || 'Normal');
-    const urgencyColor = urgencyVal.toLowerCase().includes('high') ? 'bg-red-100 text-red-700' :
-        urgencyVal.toLowerCase().includes('med') ? 'bg-orange-100 text-brand-orange' : 'bg-slate-100 text-slate-600';
+    let urgencyColor = 'bg-slate-100 text-slate-600';
+    const lowUrg = urgencyVal.toLowerCase();
+    if (lowUrg.includes('red') || lowUrg.includes('high')) urgencyColor = 'bg-rose-500 text-white shadow-lg shadow-rose-200';
+    else if (lowUrg.includes('orange') || lowUrg.includes('med')) urgencyColor = 'bg-orange-500 text-white shadow-lg shadow-orange-200';
+    else if (lowUrg.includes('yellow')) urgencyColor = 'bg-amber-400 text-amber-950 shadow-lg shadow-amber-100';
+    else if (lowUrg.includes('green')) urgencyColor = 'bg-emerald-500 text-white shadow-lg shadow-emerald-200';
+    else if (lowUrg.includes('blue')) urgencyColor = 'bg-blue-500 text-white shadow-lg shadow-blue-200';
 
     const ignoredKeys = ['NAME', 'Satus', 'Status', 'Code', 'CODE', 'Case', 'id', 'ITEM No.', 'Urgency'];
     let dynamicFieldsHtml = '';
