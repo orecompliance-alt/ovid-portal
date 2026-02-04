@@ -372,7 +372,7 @@ function renderDetails(item) {
     }
 
     const contractDate = formatDate(getValue('Contract date') || getValue('CONTRACT DATE'));
-    const cancelDate = formatDate(getValue('Cancellation') || getValue('CANCELLATION'));
+    const cancelDate = formatDate(getValue('Cancellation') || getValue('CANCELLATION') || getValue('Cancelation date') || getValue('CANCELATION DATE'));
     const elapseDate = formatDate(getValue('Elapse date') || getValue('ELAPSE DATE'));
 
     // Grouping Logic
@@ -384,7 +384,7 @@ function renderDetails(item) {
 
     const profileKeys = ['Phone No.', 'PHONE No.', 'Email', 'Address', 'Occupation'];
     const propertyKeys = ['Code', 'CODE', 'Project', 'Floor', 'Type', 'Area', 'Unit No.'];
-    const ignoredKeys = ['NAME', 'Satus', 'Status', 'Code', 'CODE', 'Case', 'id', 'ITEM No.', 'Urgency', 'TOTAL CONTRACT AMOUNT', 'COLLECTED AMOUNT/DP', 'Contract date', 'CONTRACT DATE', 'Cancellation', 'CANCELLATION', 'Elapse date', 'ELAPSE DATE'];
+    const ignoredKeys = ['NAME', 'Satus', 'Status', 'Code', 'CODE', 'Case', 'id', 'ITEM No.', 'Urgency', 'TOTAL CONTRACT AMOUNT', 'COLLECTED AMOUNT/DP', 'Contract date', 'CONTRACT DATE', 'Cancellation', 'CANCELLATION', 'Cancelation date', 'CANCELATION DATE', 'Elapse date', 'ELAPSE DATE'];
 
     Object.keys(item).forEach(key => {
         if (ignoredKeys.some(k => k.toLowerCase() === key.toLowerCase())) return;
@@ -446,10 +446,10 @@ function renderDetails(item) {
         <div class="p-6 sm:p-8">
             <!-- Order: Cancellation, Elapse, Contract -->
             <div class="flex flex-wrap gap-3 mb-8 pb-8 border-b border-slate-100">
-                ${cancelDate && cancelDate !== '—' ? `
-                <div class="flex-1 min-w-[140px] bg-rose-50/50 border border-rose-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-rose-50">
-                    <p class="text-rose-500 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Cancellation Date</p>
-                    <p class="text-rose-700 font-bold text-base md:text-lg">${cancelDate}</p>
+                ${contractDate && contractDate !== '—' ? `
+                <div class="flex-1 min-w-[140px] bg-slate-50 border border-slate-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-slate-100/50">
+                    <p class="text-slate-400 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Contract Date</p>
+                    <p class="text-slate-800 font-bold text-base md:text-lg">${contractDate}</p>
                 </div>
                 ` : ''}
                 ${elapseDate && elapseDate !== '—' ? `
@@ -458,10 +458,10 @@ function renderDetails(item) {
                     <p class="text-amber-800 font-bold text-base md:text-lg">${elapseDate}</p>
                 </div>
                 ` : ''}
-                ${contractDate && contractDate !== '—' ? `
-                <div class="flex-1 min-w-[140px] bg-slate-50 border border-slate-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-slate-100/50">
-                    <p class="text-slate-400 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Contract Date</p>
-                    <p class="text-slate-800 font-bold text-base md:text-lg">${contractDate}</p>
+                ${cancelDate && cancelDate !== '—' ? `
+                <div class="flex-1 min-w-[140px] bg-rose-50/50 border border-rose-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-rose-50">
+                    <p class="text-rose-500 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Cancellation Date</p>
+                    <p class="text-rose-700 font-bold text-base md:text-lg">${cancelDate}</p>
                 </div>
                 ` : ''}
             </div>
