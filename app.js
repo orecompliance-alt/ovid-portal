@@ -324,21 +324,38 @@ function renderDetails(item) {
     else if (lowUrg.includes('blue')) urgencyColor = 'bg-blue-500 text-white';
 
     const statusVal = String(getValue('Satus') || getValue('Status') || 'Active');
-    const statusLower = statusVal.toLowerCase();
 
+    // Enhanced status detection logic
+    const findFeeling = () => {
+        const s = statusVal.toLowerCase();
+        if (s.includes('calm')) return 'calm';
+        if (s.includes('moderate')) return 'moderate';
+        if (s.includes('angry') || s.includes('angery')) return 'angry';
+
+        // Fallback: search all item values for the feeling words
+        for (const k in item) {
+            const v = String(item[k]).toLowerCase();
+            if (v.includes('calm')) return 'calm';
+            if (v.includes('moderate')) return 'moderate';
+            if (v.includes('angry') || v.includes('angery')) return 'angry';
+        }
+        return null;
+    };
+
+    const feeling = findFeeling();
     let statusEmoji = '';
-    let statusBg = 'bg-blue-50 text-brand-600';
+    let statusBg = 'bg-blue-50 text-brand-600 border-blue-100';
 
-    if (statusLower.includes('calm')) {
+    if (feeling === 'calm') {
         statusEmoji = '😌';
-        statusBg = 'bg-emerald-50 text-emerald-700 border-emerald-100';
-    } else if (statusLower.includes('moderate')) {
+        statusBg = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    } else if (feeling === 'moderate') {
         statusEmoji = '😐';
-        statusBg = 'bg-amber-50 text-amber-700 border-amber-100';
-    } else if (statusLower.includes('angry') || statusLower.includes('angery')) {
+        statusBg = 'bg-amber-50 text-amber-700 border-amber-200';
+    } else if (feeling === 'angry') {
         statusEmoji = '😡';
-        statusBg = 'bg-rose-50 text-rose-700 border-rose-100';
-    } else if (statusLower.includes('sold')) {
+        statusBg = 'bg-rose-50 text-rose-700 border-rose-200';
+    } else if (statusVal.toLowerCase().includes('sold')) {
         statusBg = 'bg-green-100 text-green-700 border-green-200';
     }
 
@@ -415,18 +432,40 @@ function renderDetails(item) {
         </div>
 
         <div class="p-6 sm:p-8">
+            <!-- New: Integrated Key Dates Header -->
+            <div class="flex flex-wrap gap-3 mb-8 pb-8 border-b border-slate-100">
+                ${cancelDate && cancelDate !== '—' ? `
+                <div class="flex-1 min-w-[140px] bg-rose-50/50 border border-rose-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-rose-50">
+                    <p class="text-rose-500 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Cancellation Date</p>
+                    <p class="text-rose-700 font-bold text-base md:text-lg">${cancelDate}</p>
+                </div>
+                ` : ''}
+                ${contractDate && contractDate !== '—' ? `
+                <div class="flex-1 min-w-[140px] bg-slate-50 border border-slate-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-slate-100/50">
+                    <p class="text-slate-400 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Contract Date</p>
+                    <p class="text-slate-800 font-bold text-base md:text-lg">${contractDate}</p>
+                </div>
+                ` : ''}
+                ${elapseDate && elapseDate !== '—' ? `
+                <div class="flex-1 min-w-[140px] bg-amber-50/50 border border-amber-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-amber-50">
+                    <p class="text-amber-600 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Elapse Date</p>
+                    <p class="text-amber-800 font-bold text-base md:text-lg">${elapseDate}</p>
+                </div>
+                ` : ''}
+            </div>
+
             <!-- Title & Status Section -->
             <div class="mb-8">
                 <div class="flex flex-col md:flex-row justify-between items-start gap-6">
                     <div class="flex-1">
-                        <h2 class="text-3xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight leading-tight">${getValue('NAME')}</h2>
+                        <h2 class="text-4xl md:text-6xl font-black text-slate-900 mb-5 tracking-tight leading-[1.1]">${getValue('NAME')}</h2>
                         <div class="flex flex-wrap items-center gap-3">
-                            <span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-bold border transition-all shadow-sm ${statusBg}">
-                                <span>${statusEmoji}</span>
-                                <span class="uppercase tracking-wider">${statusVal}</span>
+                            <span class="inline-flex items-center gap-2 px-5 py-2 rounded-2xl text-sm font-bold border transition-all shadow-sm ${statusBg}">
+                                <span class="text-xl">${statusEmoji}</span>
+                                <span class="uppercase tracking-widest">${statusVal}</span>
                             </span>
-                            <span class="px-4 py-1.5 rounded-xl text-sm font-bold uppercase tracking-wider shadow-sm border border-transparent ${urgencyColor}">${urgencyVal} Urgency</span>
-                            <span class="px-4 py-1.5 rounded-xl text-sm font-bold bg-slate-100 text-slate-600 border border-slate-200 font-mono tracking-wider shadow-sm">${getValue('CODE') || '#'}</span>
+                            <span class="px-5 py-2 rounded-2xl text-sm font-bold uppercase tracking-widest shadow-sm border border-transparent ${urgencyColor}">${urgencyVal} Urgency</span>
+                            <span class="px-5 py-2 rounded-2xl text-sm font-bold bg-slate-100 text-slate-600 border border-slate-200 font-mono tracking-widest shadow-sm">${getValue('CODE') || '#'}</span>
                         </div>
                     </div>
                 </div>
@@ -454,39 +493,27 @@ function renderDetails(item) {
                             <div class="flex justify-between items-end mb-3">
                                 <div>
                                     <p class="text-emerald-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Collected Amount (DP)</p>
-                                    <p class="text-2xl font-bold text-white">${formatCurrency(paid)}</p>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-1">Contract Date</p>
-                                    <p class="text-white/80 font-bold text-sm">${contractDate || '—'}</p>
+                                    <p class="text-3xl font-black text-white leading-none">${formatCurrency(paid)}</p>
                                 </div>
                             </div>
-                            <div class="h-3 w-full bg-white/10 rounded-full overflow-hidden shadow-inner">
-                                <div class="h-full bg-emerald-500 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-1000" style="width: ${percentPaid}%"></div>
+                            <div class="h-4 w-full bg-white/10 rounded-full overflow-hidden shadow-inner mb-2">
+                                <div class="h-full bg-emerald-500 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-1000" style="width: ${percentPaid}%"></div>
                             </div>
-                            <p class="text-emerald-300 text-[10px] mt-2 font-bold uppercase tracking-wider">${percentPaid}% Paid</p>
+                            <p class="text-emerald-400 text-[10px] font-black uppercase tracking-[0.1em]">${percentPaid}% Collected</p>
                         </div>
                         <div>
                             <div class="flex justify-between items-end mb-3">
                                 <div>
                                     <p class="text-rose-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Remaining Balance</p>
-                                    <p class="text-2xl font-bold text-white">${formatCurrency(remaining)}</p>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-rose-400 text-[10px] font-bold uppercase tracking-widest mb-1">Cancellation</p>
-                                    <p class="text-rose-300 font-bold text-sm">${cancelDate || '—'}</p>
+                                    <p class="text-3xl font-black text-white leading-none">${formatCurrency(remaining)}</p>
                                 </div>
                             </div>
-                            <div class="h-3 w-full bg-white/10 rounded-full overflow-hidden shadow-inner">
-                                <div class="h-full bg-rose-500 rounded-full shadow-[0_0_15px_rgba(244,63,94,0.5)] transition-all duration-1000" style="width: ${100 - percentPaid}%"></div>
+                            <div class="h-4 w-full bg-white/10 rounded-full overflow-hidden shadow-inner mb-2">
+                                <div class="h-full bg-rose-500 rounded-full shadow-[0_0_20px_rgba(244,63,94,0.4)] transition-all duration-1000" style="width: ${100 - percentPaid}%"></div>
                             </div>
-                            <div class="flex justify-between mt-2">
-                                <p class="text-rose-300 text-[10px] font-bold uppercase tracking-wider">${100 - percentPaid}% Outstanding</p>
-                                ${elapseDate && elapseDate !== '—' ? `
-                                <p class="text-amber-400 text-[10px] font-bold uppercase tracking-wider">Elapse: ${elapseDate}</p>
-                                ` : ''}
-                            </div>
+                            <p class="text-rose-400 text-[10px] font-black uppercase tracking-[0.1em]">${100 - percentPaid}% Outstanding</p>
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>
