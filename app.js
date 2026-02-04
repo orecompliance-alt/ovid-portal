@@ -325,19 +325,31 @@ function renderDetails(item) {
 
     const statusVal = String(getValue('Satus') || getValue('Status') || getValue('Customer Status') || 'Active');
 
-    // Enhanced status detection logic
+    // Improved detection: Search absolutely everywhere for these keywords
     const findFeeling = () => {
-        const s = statusVal.toLowerCase();
-        if (s.includes('calm')) return 'calm';
-        if (s.includes('moderate')) return 'moderate';
-        if (s.includes('angry') || s.includes('angery')) return 'angry';
+        const keywords = {
+            calm: ['calm', 'relax', 'peace'],
+            moderate: ['moderate', 'normal', 'ok', 'neutral'],
+            angry: ['angry', 'angery', 'upset', 'complain', 'bad']
+        };
 
-        // Fallback: search all item values for the feeling words
+        const checkText = (text) => {
+            if (!text) return null;
+            const t = String(text).toLowerCase();
+            if (t.includes('calm')) return 'calm';
+            if (t.includes('moderate')) return 'moderate';
+            if (t.includes('angry') || t.includes('angery')) return 'angry';
+            return null;
+        };
+
+        // 1. Check primary status field
+        let found = checkText(statusVal);
+        if (found) return found;
+
+        // 2. Check all other fields in the customer record
         for (const k in item) {
-            const v = String(item[k]).toLowerCase();
-            if (v.includes('calm')) return 'calm';
-            if (v.includes('moderate')) return 'moderate';
-            if (v.includes('angry') || v.includes('angery')) return 'angry';
+            found = checkText(item[k]);
+            if (found) return found;
         }
         return null;
     };
@@ -432,12 +444,12 @@ function renderDetails(item) {
         </div>
 
         <div class="p-6 sm:p-8">
-            <!-- New: Integrated Key Dates Header -->
+            <!-- Order: Cancellation, Elapse, Contract -->
             <div class="flex flex-wrap gap-3 mb-8 pb-8 border-b border-slate-100">
-                ${contractDate && contractDate !== '—' ? `
-                <div class="flex-1 min-w-[140px] bg-slate-50 border border-slate-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-slate-100/50">
-                    <p class="text-slate-400 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Contract Date</p>
-                    <p class="text-slate-800 font-bold text-base md:text-lg">${contractDate}</p>
+                ${cancelDate && cancelDate !== '—' ? `
+                <div class="flex-1 min-w-[140px] bg-rose-50/50 border border-rose-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-rose-50">
+                    <p class="text-rose-500 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Cancellation Date</p>
+                    <p class="text-rose-700 font-bold text-base md:text-lg">${cancelDate}</p>
                 </div>
                 ` : ''}
                 ${elapseDate && elapseDate !== '—' ? `
@@ -446,10 +458,10 @@ function renderDetails(item) {
                     <p class="text-amber-800 font-bold text-base md:text-lg">${elapseDate}</p>
                 </div>
                 ` : ''}
-                ${cancelDate && cancelDate !== '—' ? `
-                <div class="flex-1 min-w-[140px] bg-rose-50/50 border border-rose-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-rose-50">
-                    <p class="text-rose-500 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Cancellation Date</p>
-                    <p class="text-rose-700 font-bold text-base md:text-lg">${cancelDate}</p>
+                ${contractDate && contractDate !== '—' ? `
+                <div class="flex-1 min-w-[140px] bg-slate-50 border border-slate-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-slate-100/50">
+                    <p class="text-slate-400 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Contract Date</p>
+                    <p class="text-slate-800 font-bold text-base md:text-lg">${contractDate}</p>
                 </div>
                 ` : ''}
             </div>
