@@ -290,7 +290,7 @@ function renderDetails(item) {
     };
 
     const isCurrencyKey = (key) => /amount|paid|total|remaining|balance|price|contract|cost|payment/i.test(key);
-    const isProtectedKey = (key) => /phone|code|date|no\.|id|case|item/i.test(key);
+    const isProtectedKey = (key) => /phone|code|date|no\.|(\bid\b)|case|item/i.test(key);
 
     const formatCurrency = (val) => {
         const num = cleanNumber(val);
@@ -323,7 +323,7 @@ function renderDetails(item) {
     else if (lowUrg.includes('green')) urgencyColor = 'bg-emerald-500 text-white';
     else if (lowUrg.includes('blue')) urgencyColor = 'bg-blue-500 text-white';
 
-    const statusVal = String(getValue('Satus') || getValue('Status') || 'Active');
+    const statusVal = String(getValue('Satus') || getValue('Status') || getValue('Customer Status') || 'Active');
 
     // Enhanced status detection logic
     const findFeeling = () => {
