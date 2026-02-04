@@ -444,29 +444,9 @@ function renderDetails(item) {
         </div>
 
         <div class="p-6 sm:p-8">
-            <!-- Order: Cancellation, Elapse, Contract -->
-            <div class="flex flex-wrap gap-3 mb-8 pb-8 border-b border-slate-100">
-                ${contractDate && contractDate !== '—' ? `
-                <div class="flex-1 min-w-[140px] bg-slate-50 border border-slate-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-slate-100/50">
-                    <p class="text-slate-400 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Contract Date</p>
-                    <p class="text-slate-800 font-bold text-base md:text-lg">${contractDate}</p>
-                </div>
-                ` : ''}
-                ${elapseDate && elapseDate !== '—' ? `
-                <div class="flex-1 min-w-[140px] bg-amber-50/50 border border-amber-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-amber-50">
-                    <p class="text-amber-600 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Elapse Date</p>
-                    <p class="text-amber-800 font-bold text-base md:text-lg">${elapseDate}</p>
-                </div>
-                ` : ''}
-                ${cancelDate && cancelDate !== '—' ? `
-                <div class="flex-1 min-w-[140px] bg-rose-50/50 border border-rose-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-rose-50">
-                    <p class="text-rose-500 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Cancellation Date</p>
-                    <p class="text-rose-700 font-bold text-base md:text-lg">${cancelDate}</p>
-                </div>
-                ` : ''}
-            </div>
-
-            <!-- Title & Status Section -->
+            <!-- Section 1: Title, Status & Financial Board -->
+            <div class="mb-10">
+                <!-- Title & Status Section -->
             <div class="mb-8">
                 <div class="flex flex-col md:flex-row justify-between items-start gap-6">
                     <div class="flex-1">
@@ -482,9 +462,7 @@ function renderDetails(item) {
                     </div>
                 </div>
             </div>
-
-            <!-- Enhanced Financial Section -->
-            ${hasFinancials ? `
+                ${hasFinancials ? `
             <div class="bg-slate-900 rounded-3xl p-6 md:p-8 mb-10 text-white shadow-2xl relative overflow-hidden group">
                 <!-- Abstract visual element -->
                 <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl group-hover:bg-brand-500/20 transition-all duration-700"></div>
@@ -530,14 +508,40 @@ function renderDetails(item) {
                 </div>
             </div>
             ` : ''}
-
-            <!-- Information Sections -->
-            <div class="space-y-2">
-                ${renderSection(sections.profile)}
-                ${renderSection(sections.property)}
-                ${renderSection(sections.admin)}
             </div>
-        </div>
+
+            <!-- Section 2: Integrated Key Dates -->
+            <div class="mb-10 pb-8 border-b border-slate-100">
+                <!-- Order: Cancellation, Elapse, Contract -->
+            <div class="flex flex-wrap gap-3 mb-8 pb-8 border-b border-slate-100">
+                ${contractDate && contractDate !== '—' ? `
+                <div class="flex-1 min-w-[140px] bg-slate-50 border border-slate-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-slate-100/50">
+                    <p class="text-slate-400 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Contract Date</p>
+                    <p class="text-slate-800 font-bold text-base md:text-lg">${contractDate}</p>
+                </div>
+                ` : ''}
+                ${elapseDate && elapseDate !== '—' ? `
+                <div class="flex-1 min-w-[140px] bg-amber-50/50 border border-amber-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-amber-50">
+                    <p class="text-amber-600 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Elapse Date</p>
+                    <p class="text-amber-800 font-bold text-base md:text-lg">${elapseDate}</p>
+                </div>
+                ` : ''}
+                ${cancelDate && cancelDate !== '—' ? `
+                <div class="flex-1 min-w-[140px] bg-rose-50/50 border border-rose-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-rose-50">
+                    <p class="text-rose-500 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Cancellation Date</p>
+                    <p class="text-rose-700 font-bold text-base md:text-lg">${cancelDate}</p>
+                </div>
+                ` : ''}
+            </div>
+            </div>
+
+            <!-- Section 3: Information Sections -->
+            <div class="space-y-4">
+                ${renderSection(sections.profile)}
+                ${renderSection(sections.admin)}
+                ${renderSection(sections.property)}
+            </div>
+</div>
     `;
 
     dom.modalContent.innerHTML = content;
