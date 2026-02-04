@@ -312,6 +312,7 @@ function renderDetails(item) {
     const paid = cleanNumber(getValue('COLLECTED AMOUNT/DP'));
     const remaining = total - paid;
     const hasFinancials = total > 0;
+    const percentPaid = total > 0 ? Math.round((paid / total) * 100) : 0;
 
     const urgencyVal = String(getValue('Urgency') || 'Normal');
     let urgencyColor = 'bg-slate-100 text-slate-600';
@@ -322,74 +323,180 @@ function renderDetails(item) {
     else if (lowUrg.includes('green')) urgencyColor = 'bg-emerald-500 text-white';
     else if (lowUrg.includes('blue')) urgencyColor = 'bg-blue-500 text-white';
 
-    const ignoredKeys = ['NAME', 'Satus', 'Status', 'Code', 'CODE', 'Case', 'id', 'ITEM No.', 'Urgency'];
-    let dynamicFieldsHtml = '';
+    const statusVal = String(getValue('Satus') || getValue('Status') || 'Active');
+    const statusLower = statusVal.toLowerCase();
+
+    let statusEmoji = '';
+    let statusBg = 'bg-blue-50 text-brand-600';
+
+    if (statusLower.includes('calm')) {
+        statusEmoji = '😌';
+        statusBg = 'bg-emerald-50 text-emerald-700 border-emerald-100';
+    } else if (statusLower.includes('moderate')) {
+        statusEmoji = '😐';
+        statusBg = 'bg-amber-50 text-amber-700 border-amber-100';
+    } else if (statusLower.includes('angry') || statusLower.includes('angery')) {
+        statusEmoji = '😡';
+        statusBg = 'bg-rose-50 text-rose-700 border-rose-100';
+    } else if (statusLower.includes('sold')) {
+        statusBg = 'bg-green-100 text-green-700 border-green-200';
+    }
+
+    const contractDate = formatDate(getValue('Contract date') || getValue('CONTRACT DATE'));
+    const cancelDate = formatDate(getValue('Cancellation') || getValue('CANCELLATION'));
+    const elapseDate = formatDate(getValue('Elapse date') || getValue('ELAPSE DATE'));
+
+    // Grouping Logic
+    const sections = {
+        profile: { title: 'Client Profile', icon: 'user', items: [] },
+        property: { title: 'Property Details', icon: 'home', items: [] },
+        admin: { title: 'Administrative', icon: 'clipboard-list', items: [] }
+    };
+
+    const profileKeys = ['Phone No.', 'PHONE No.', 'Email', 'Address', 'Occupation'];
+    const propertyKeys = ['Code', 'CODE', 'Project', 'Floor', 'Type', 'Area', 'Unit No.'];
+    const ignoredKeys = ['NAME', 'Satus', 'Status', 'Code', 'CODE', 'Case', 'id', 'ITEM No.', 'Urgency', 'TOTAL CONTRACT AMOUNT', 'COLLECTED AMOUNT/DP', 'Contract date', 'CONTRACT DATE', 'Cancellation', 'CANCELLATION', 'Elapse date', 'ELAPSE DATE'];
+
     Object.keys(item).forEach(key => {
         if (ignoredKeys.some(k => k.toLowerCase() === key.toLowerCase())) return;
+
         let val = item[key];
         let displayVal = (val === null || val === undefined || String(val).trim() === '') ? '—' : String(val);
-
-        // Clean up ISO dates
         displayVal = formatDate(displayVal);
-
-        // Smart Currency Detection
         if (displayVal !== '—' && isCurrencyKey(key) && !isProtectedKey(key)) {
             displayVal = formatCurrency(displayVal);
         }
 
-        dynamicFieldsHtml += `
-            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 transition-all hover:bg-white hover:shadow-md">
+        const fieldHtml = `
+            <div class="bg-slate-50/50 p-3 rounded-xl border border-slate-100 transition-all hover:bg-white hover:shadow-sm">
                 <p class="text-slate-400 text-[10px] uppercase tracking-wider mb-1 font-semibold">${key}</p>
-                <p class="text-slate-800 font-medium text-sm md:text-base break-words">${displayVal}</p>
+                <p class="text-slate-800 font-medium text-sm break-words">${displayVal}</p>
             </div>
         `;
+
+        if (profileKeys.some(k => k.toLowerCase() === key.toLowerCase())) {
+            sections.profile.items.push(fieldHtml);
+        } else if (propertyKeys.some(k => k.toLowerCase() === key.toLowerCase())) {
+            sections.property.items.push(fieldHtml);
+        } else {
+            sections.admin.items.push(fieldHtml);
+        }
     });
 
-    const statusVal = String(getValue('Satus') || getValue('Status') || 'Active');
-    const statusColor = statusVal.toLowerCase().includes('sold') ? 'text-green-700 bg-green-100' : 'text-brand-600 bg-blue-50';
+    const renderSection = (section) => {
+        if (section.items.length === 0) return '';
+        return `
+            <div class="mb-8 last:mb-0">
+                <div class="flex items-center gap-2 mb-4 border-b border-slate-100 pb-2">
+                    <i data-lucide="${section.icon}" class="w-5 h-5 text-brand-500"></i>
+                    <h3 class="text-slate-900 font-bold text-base uppercase tracking-tight">${section.title}</h3>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    ${section.items.join('')}
+                </div>
+            </div>
+        `;
+    };
 
     const content = `
-        <div class="relative bg-white p-6 sm:p-8 flex flex-col gap-6 border-b border-slate-100">
-            <button onclick="closeModal()" class="flex items-center gap-2 text-brand-500 font-medium group">
-                <i data-lucide="arrow-left" class="w-5 h-5 group-hover:-translate-x-1 transition-transform"></i>
+        <!-- Sticky Header Context -->
+        <div class="sticky top-0 z-40 bg-white/80 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-slate-100 shadow-sm sm:px-8">
+            <button onclick="closeModal()" class="flex items-center gap-2 text-brand-500 font-semibold hover:text-brand-600 transition-colors">
+                <i data-lucide="chevron-left" class="w-5 h-5"></i>
                 <span>Back</span>
             </button>
-            <div class="flex flex-col md:flex-row justify-between items-start gap-4">
-                <div class="flex-1">
-                    <h2 class="text-2xl md:text-3xl font-bold text-brand-500 mb-2">${getValue('NAME')}</h2>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <span class="px-3 py-1 rounded-full text-sm font-bold ${statusColor}">${statusVal}</span>
-                        <span class="px-3 py-1 rounded-full text-sm font-bold ${urgencyColor}">${urgencyVal}</span>
-                        <span class="px-3 py-1 rounded-full text-sm border bg-slate-50 font-mono">${getValue('CODE') || '#'}</span>
-                        <button onclick="requestUpdate('${item['ITEM No.']}')" id="btn-update-${item['ITEM No.']}" class="ml-2 px-3 py-1 bg-brand-orange text-white text-xs rounded-full flex items-center gap-1">
-                            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Need Update
-                        </button>
-                    </div>
-                </div>
-                ${hasFinancials ? `<div class="w-full md:w-48 h-32 flex items-center justify-center bg-slate-50 rounded-xl p-2 border shrink-0">
-                    <canvas id="financeChart"></canvas>
-                </div>` : ''}
+            <div class="flex items-center gap-2">
+                 <button onclick="requestUpdate('${item['ITEM No.']}')" id="btn-update-${item['ITEM No.']}" class="px-4 py-1.5 bg-brand-orange hover:bg-orange-600 text-white text-xs font-bold rounded-full flex items-center gap-2 shadow-lg shadow-orange-100 transition-all active:scale-95">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> 
+                    <span class="hidden xs:inline">Request Update</span>
+                    <span class="inline xs:hidden">Update</span>
+                </button>
             </div>
         </div>
-        <div class="p-6 sm:p-8 max-h-[60vh] overflow-y-auto">
+
+        <div class="p-6 sm:p-8">
+            <!-- Title & Status Section -->
+            <div class="mb-8">
+                <div class="flex flex-col md:flex-row justify-between items-start gap-6">
+                    <div class="flex-1">
+                        <h2 class="text-3xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight leading-tight">${getValue('NAME')}</h2>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-bold border transition-all shadow-sm ${statusBg}">
+                                <span>${statusEmoji}</span>
+                                <span class="uppercase tracking-wider">${statusVal}</span>
+                            </span>
+                            <span class="px-4 py-1.5 rounded-xl text-sm font-bold uppercase tracking-wider shadow-sm border border-transparent ${urgencyColor}">${urgencyVal} Urgency</span>
+                            <span class="px-4 py-1.5 rounded-xl text-sm font-bold bg-slate-100 text-slate-600 border border-slate-200 font-mono tracking-wider shadow-sm">${getValue('CODE') || '#'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced Financial Section -->
             ${hasFinancials ? `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div class="bg-brand-500 text-white p-4 rounded-2xl">
-                    <p class="text-blue-100 text-xs uppercase mb-1">Total Contract</p>
-                    <p class="text-xl md:text-2xl font-bold">${formatCurrency(total)}</p>
-                </div>
-                <div class="bg-emerald-50 text-emerald-700 p-4 rounded-2xl border border-emerald-200">
-                    <p class="text-emerald-600 text-xs uppercase mb-1 font-bold">Paid / DP</p>
-                    <p class="text-xl md:text-2xl font-bold">${formatCurrency(paid)}</p>
-                </div>
-                <div class="bg-rose-50 text-rose-700 p-4 rounded-2xl border border-rose-200">
-                    <p class="text-rose-600 text-xs uppercase mb-1 font-bold">Remaining</p>
-                    <p class="text-xl md:text-2xl font-bold">${formatCurrency(remaining)}</p>
+            <div class="bg-slate-900 rounded-3xl p-6 md:p-8 mb-10 text-white shadow-2xl relative overflow-hidden group">
+                <!-- Abstract visual element -->
+                <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl group-hover:bg-brand-500/20 transition-all duration-700"></div>
+                
+                <div class="relative z-10">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+                        <div>
+                            <p class="text-blue-300 text-[10px] uppercase font-bold tracking-[0.2em] mb-2">Total Contract Value</p>
+                            <p class="text-3xl md:text-5xl font-black">${formatCurrency(total)}</p>
+                        </div>
+                        <div class="w-24 h-24 shrink-0">
+                            <canvas id="financeChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-white/10">
+                        <div>
+                            <div class="flex justify-between items-end mb-3">
+                                <div>
+                                    <p class="text-emerald-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Collected Amount (DP)</p>
+                                    <p class="text-2xl font-bold text-white">${formatCurrency(paid)}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-1">Contract Date</p>
+                                    <p class="text-white/80 font-bold text-sm">${contractDate || '—'}</p>
+                                </div>
+                            </div>
+                            <div class="h-3 w-full bg-white/10 rounded-full overflow-hidden shadow-inner">
+                                <div class="h-full bg-emerald-500 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-1000" style="width: ${percentPaid}%"></div>
+                            </div>
+                            <p class="text-emerald-300 text-[10px] mt-2 font-bold uppercase tracking-wider">${percentPaid}% Paid</p>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-end mb-3">
+                                <div>
+                                    <p class="text-rose-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Remaining Balance</p>
+                                    <p class="text-2xl font-bold text-white">${formatCurrency(remaining)}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-rose-400 text-[10px] font-bold uppercase tracking-widest mb-1">Cancellation</p>
+                                    <p class="text-rose-300 font-bold text-sm">${cancelDate || '—'}</p>
+                                </div>
+                            </div>
+                            <div class="h-3 w-full bg-white/10 rounded-full overflow-hidden shadow-inner">
+                                <div class="h-full bg-rose-500 rounded-full shadow-[0_0_15px_rgba(244,63,94,0.5)] transition-all duration-1000" style="width: ${100 - percentPaid}%"></div>
+                            </div>
+                            <div class="flex justify-between mt-2">
+                                <p class="text-rose-300 text-[10px] font-bold uppercase tracking-wider">${100 - percentPaid}% Outstanding</p>
+                                ${elapseDate && elapseDate !== '—' ? `
+                                <p class="text-amber-400 text-[10px] font-bold uppercase tracking-wider">Elapse: ${elapseDate}</p>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             ` : ''}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                ${dynamicFieldsHtml}
+
+            <!-- Information Sections -->
+            <div class="space-y-2">
+                ${renderSection(sections.profile)}
+                ${renderSection(sections.property)}
+                ${renderSection(sections.admin)}
             </div>
         </div>
     `;
@@ -407,10 +514,19 @@ function renderDetails(item) {
                     datasets: [{
                         data: [paid, remaining],
                         backgroundColor: ['#10b981', '#f43f5e'],
-                        borderWidth: 0
+                        borderWidth: 0,
+                        hoverOffset: 4
                     }]
                 },
-                options: { cutout: '65%', plugins: { legend: { display: false } } }
+                options: {
+                    cutout: '75%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    },
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
             });
         }
     }
