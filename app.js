@@ -38,7 +38,7 @@ const KEYS = {
     CODE: ['Sold Stock', 'CODE', 'Project Code', 'Unit Code', 'Ref Code'],
     URGENCY: ['Urgency', 'Priority', 'Level'],
     TOTAL: ['Total Contract Amount', 'TOTAL CONTRACT AMOUNT', 'Total Contract Value', 'Total Amount', 'Total'],
-    PAID: ['Amount paid', 'Collection Amount 1', 'COLLECTED AMOUNT/DP', 'Collected', 'Paid Amount', 'Paid', 'DP'],
+    PAID: ['Amount paid', 'COLLECTED AMOUNT/DP', 'Collected', 'Paid Amount', 'Paid', 'DP'],
     CONTRACT_DATE: ['Date', 'Contract date', 'CONTRACT DATE', 'Date of Contract'],
     CANCEL_DATE: ['Cancellation Date', 'Cancellation', 'CANCELLATION', 'Cancelation date', 'CANCELATION DATE'],
     ELAPSE_DATE: ['Elapse date', 'ELAPSE DATE', 'Deadline']
@@ -431,23 +431,28 @@ function renderDetails(item) {
     const sections = {
         profile: { title: 'Client Profile', icon: 'user', items: [] },
         property: { title: 'Property Details', icon: 'home', items: [] },
+        financials: { title: 'Financial Records', icon: 'banknote', items: [] },
         admin: { title: 'Administrative', icon: 'clipboard-list', items: [] }
     };
 
     const profileKeys = ['Phone No.', 'PHONE No.', 'Email', 'Address', 'Occupation', 'Phone', 'Mobile'];
-    const propertyKeys = ['Code', 'CODE', 'Project', 'Floor', 'Type', 'Area', 'Unit No.', 'Unit'];
+    const propertyKeys = ['Code', 'CODE', 'Project', 'Floor', 'Type', 'Area', 'Unit No.', 'Unit', 'Sqm', 'Bedroom', 'Site', 'Sold Stock'];
+    const financialKeys = ['Amount paid', 'Remaining Amount', 'Total Contract Amount', 'Collection Amount', 'Amendment payment', 'Refund Amount', 'Vat Amount', 'Paid', 'Balance', 'Price'];
 
-    // Collect all used keys from our mapping to ignore them in the general admin section
-    const allMappedKeys = Object.values(KEYS).flat();
-    const ignoredKeys = [...allMappedKeys, 'NAME', 'Satus', 'Status', 'Code', 'CODE', 'Case', 'id', 'ITEM No.', 'Urgency'];
+    // Only ignore keys explicitly shown in the main header/stats board
+    const boardKeys = ['NAME', 'Buyers Name', 'No.', 'ITEM No.', 'Status', 'Contract status', 'Customer status', 'Urgency', 'Date', 'Contract date', 'Cancellation Date', 'Elapse date'];
+    const ignoredKeys = boardKeys.map(k => k.toLowerCase().trim());
 
     Object.keys(item).forEach(key => {
-        if (ignoredKeys.some(k => k.toLowerCase() === key.toLowerCase())) return;
+        const kLower = key.toLowerCase().trim();
+        if (ignoredKeys.includes(kLower)) return;
 
         let val = item[key];
         let displayVal = (val === null || val === undefined || String(val).trim() === '') ? '—' : String(val);
         displayVal = formatDate(displayVal);
-        if (displayVal !== '—' && isCurrencyKey(key) && !isProtectedKey(key)) {
+
+        // Auto-format currency for financial-looking keys
+        if (displayVal !== '—' && (isCurrencyKey(key) || financialKeys.some(fk => kLower.includes(fk.toLowerCase().trim()))) && !isProtectedKey(key)) {
             displayVal = formatCurrency(displayVal);
         }
 
@@ -458,10 +463,12 @@ function renderDetails(item) {
             </div>
         `;
 
-        if (profileKeys.some(k => k.toLowerCase() === key.toLowerCase())) {
+        if (profileKeys.some(k => kLower.includes(k.toLowerCase().trim()))) {
             sections.profile.items.push(fieldHtml);
-        } else if (propertyKeys.some(k => k.toLowerCase() === key.toLowerCase())) {
+        } else if (propertyKeys.some(k => kLower.includes(k.toLowerCase().trim()))) {
             sections.property.items.push(fieldHtml);
+        } else if (financialKeys.some(fk => kLower.includes(fk.toLowerCase().trim()))) {
+            sections.financials.items.push(fieldHtml);
         } else {
             sections.admin.items.push(fieldHtml);
         }
@@ -593,8 +600,9 @@ function renderDetails(item) {
             <!-- Section 3: Information Sections -->
             <div class="space-y-4">
                 ${renderSection(sections.profile)}
-                ${renderSection(sections.admin)}
                 ${renderSection(sections.property)}
+                ${renderSection(sections.financials)}
+                ${renderSection(sections.admin)}
             </div>
 </div>
     `;
