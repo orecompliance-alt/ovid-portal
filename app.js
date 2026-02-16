@@ -29,6 +29,44 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxahv-0UjHWai2VWBdv6
 const dom = {};
 let allData = { clients: [], news: [] };
 
+// Robust Header Mapping
+const KEYS = {
+    NAME: ['NAME', 'Customer Name', 'Client Name', 'Home Buyer Name', 'Full Name'],
+    ID: ['ITEM No.', 'ID', 'Item Number', 'Customer ID', 'Item#'],
+    PHONE: ['PHONE No.', 'Phone', 'Contact Number', 'Mobile', 'Tel'],
+    STATUS: ['Satus', 'Status', 'Customer Status', 'Client Status', 'State'],
+    CODE: ['CODE', 'Project Code', 'Unit Code', 'Ref Code'],
+    URGENCY: ['Urgency', 'Priority', 'Level'],
+    TOTAL: ['TOTAL CONTRACT AMOUNT', 'Total Contract Value', 'Total Amount', 'Total'],
+    PAID: ['COLLECTED AMOUNT/DP', 'Collected', 'Paid Amount', 'Paid', 'DP'],
+    CONTRACT_DATE: ['Contract date', 'CONTRACT DATE', 'Date of Contract'],
+    CANCEL_DATE: ['Cancellation', 'CANCELLATION', 'Cancelation date', 'CANCELATION DATE'],
+    ELAPSE_DATE: ['Elapse date', 'ELAPSE DATE', 'Deadline']
+};
+
+function getVal(row, keySet) {
+    if (!row) return null;
+    if (typeof keySet === 'string') keySet = [keySet];
+
+    // 1. Try exact matches from keySet
+    for (const k of keySet) {
+        if (row[k] !== undefined) return row[k];
+    }
+
+    // 2. Try case-insensitive and trimmed matches
+    const lowerKeys = Object.keys(row).reduce((acc, k) => {
+        acc[k.toLowerCase().trim()] = k;
+        return acc;
+    }, {});
+
+    for (const k of keySet) {
+        const target = k.toLowerCase().trim();
+        if (lowerKeys[target]) return row[lowerKeys[target]];
+    }
+
+    return null;
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     // Populate DOM object
@@ -160,7 +198,7 @@ function handleSearch(e) {
     }
 
     const matches = (allData.clients || []).filter(row => {
-        const nameVal = row['NAME'];
+        const nameVal = getVal(row, KEYS.NAME);
         const name = nameVal ? String(nameVal).toLowerCase() : '';
         return name.includes(query);
     });
@@ -233,21 +271,29 @@ function renderResults(matches) {
         return;
     }
 
-    const html = matches.map(item => `
-        <div class="search-item p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors flex items-center justify-between group" onclick="openDetails('${item['ITEM No.']}')">
-            <div>
-                <h3 class="text-slate-900 font-bold text-lg group-hover:text-brand-600 transition-colors">${item['NAME'] || 'Unknown Name'}</h3>
-                <p class="text-slate-500 text-sm flex items-center gap-2">
-                    <i data-lucide="phone" class="w-3 h-3 text-brand-orange"></i> ${item['PHONE No.'] || 'N/A'}
-                    <span class="mx-1 text-slate-300">•</span>
-                    <span class="text-slate-500">${item['CODE'] || '#'}</span>
-                </p>
+    const html = matches.map(item => {
+        const id = getVal(item, KEYS.ID);
+        const name = getVal(item, KEYS.NAME) || 'Unknown Name';
+        const phone = getVal(item, KEYS.PHONE) || 'N/A';
+        const code = getVal(item, KEYS.CODE) || '#';
+        const status = getVal(item, KEYS.STATUS) || 'Status N/A';
+
+        return `
+            <div class="search-item p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors flex items-center justify-between group" onclick="openDetails('${id}')">
+                <div>
+                    <h3 class="text-slate-900 font-bold text-lg group-hover:text-brand-600 transition-colors">${name}</h3>
+                    <p class="text-slate-500 text-sm flex items-center gap-2">
+                        <i data-lucide="phone" class="w-3 h-3 text-brand-orange"></i> ${phone}
+                        <span class="mx-1 text-slate-300">•</span>
+                        <span class="text-slate-500">${code}</span>
+                    </p>
+                </div>
+                <div class="text-right">
+                    <span class="px-2 py-1 rounded bg-slate-100 text-xs text-slate-600 border border-slate-200 font-medium">${status}</span>
+                </div>
             </div>
-            <div class="text-right">
-                <span class="px-2 py-1 rounded bg-slate-100 text-xs text-slate-600 border border-slate-200 font-medium">${item['Satus'] || item['Customer Status'] || 'Status N/A'}</span>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 
     dom.results.innerHTML = html;
     dom.results.classList.remove('hidden');
@@ -256,16 +302,16 @@ function renderResults(matches) {
 
 // Global openDetails
 window.openDetails = function (id) {
-    if (!id || id === 'undefined') {
+    if (!id || id === 'undefined' || id === 'null') {
         console.warn("Invalid ID passed to openDetails:", id);
         return;
     }
 
     console.log("Opening details for ID:", id);
-    const item = (allData.clients || []).find(r => String(r['ITEM No.']) === String(id));
+    const item = (allData.clients || []).find(r => String(getVal(r, KEYS.ID)) === String(id));
 
     if (!item) {
-        console.error("Could not find client with ID:", id, "Available IDs:", allData.clients.map(c => c['ITEM No.']));
+        console.error("Could not find client with ID:", id, "Available IDs:", allData.clients.map(c => getVal(c, KEYS.ID)));
         return;
     }
 
@@ -279,6 +325,9 @@ function closeModal() {
 
 function renderDetails(item) {
     const getValue = (key) => {
+        // Use our robust mapping if it's a known key
+        if (KEYS[key]) return getVal(item, KEYS[key]);
+
         const k = Object.keys(item).find(i => i.trim().toLowerCase() === key.toLowerCase());
         return k ? item[k] : null;
     };
@@ -308,13 +357,13 @@ function renderDetails(item) {
         return val;
     };
 
-    const total = cleanNumber(getValue('TOTAL CONTRACT AMOUNT'));
-    const paid = cleanNumber(getValue('COLLECTED AMOUNT/DP'));
+    const total = cleanNumber(getValue('TOTAL'));
+    const paid = cleanNumber(getValue('PAID'));
     const remaining = total - paid;
     const hasFinancials = total > 0;
     const percentPaid = total > 0 ? Math.round((paid / total) * 100) : 0;
 
-    const urgencyVal = String(getValue('Urgency') || 'Normal');
+    const urgencyVal = String(getValue('URGENCY') || 'Normal');
     let urgencyColor = 'bg-slate-100 text-slate-600';
     const lowUrg = urgencyVal.toLowerCase();
     if (lowUrg.includes('red') || lowUrg.includes('high')) urgencyColor = 'bg-rose-500 text-white';
@@ -323,7 +372,7 @@ function renderDetails(item) {
     else if (lowUrg.includes('green')) urgencyColor = 'bg-emerald-500 text-white';
     else if (lowUrg.includes('blue')) urgencyColor = 'bg-blue-500 text-white';
 
-    const statusVal = String(getValue('Satus') || getValue('Status') || getValue('Customer Status') || 'Active');
+    const statusVal = String(getValue('STATUS') || 'Active');
 
     // Improved detection: Search absolutely everywhere for these keywords
     const findFeeling = () => {
@@ -371,9 +420,9 @@ function renderDetails(item) {
         statusBg = 'bg-green-100 text-green-700 border-green-200';
     }
 
-    const contractDate = formatDate(getValue('Contract date') || getValue('CONTRACT DATE'));
-    const cancelDate = formatDate(getValue('Cancellation') || getValue('CANCELLATION') || getValue('Cancelation date') || getValue('CANCELATION DATE'));
-    const elapseDate = formatDate(getValue('Elapse date') || getValue('ELAPSE DATE'));
+    const contractDate = formatDate(getValue('CONTRACT_DATE'));
+    const cancelDate = formatDate(getValue('CANCEL_DATE'));
+    const elapseDate = formatDate(getValue('ELAPSE_DATE'));
 
     // Grouping Logic
     const sections = {
@@ -382,9 +431,12 @@ function renderDetails(item) {
         admin: { title: 'Administrative', icon: 'clipboard-list', items: [] }
     };
 
-    const profileKeys = ['Phone No.', 'PHONE No.', 'Email', 'Address', 'Occupation'];
-    const propertyKeys = ['Code', 'CODE', 'Project', 'Floor', 'Type', 'Area', 'Unit No.'];
-    const ignoredKeys = ['NAME', 'Satus', 'Status', 'Code', 'CODE', 'Case', 'id', 'ITEM No.', 'Urgency', 'TOTAL CONTRACT AMOUNT', 'COLLECTED AMOUNT/DP', 'Contract date', 'CONTRACT DATE', 'Cancellation', 'CANCELLATION', 'Cancelation date', 'CANCELATION DATE', 'Elapse date', 'ELAPSE DATE'];
+    const profileKeys = ['Phone No.', 'PHONE No.', 'Email', 'Address', 'Occupation', 'Phone', 'Mobile'];
+    const propertyKeys = ['Code', 'CODE', 'Project', 'Floor', 'Type', 'Area', 'Unit No.', 'Unit'];
+
+    // Collect all used keys from our mapping to ignore them in the general admin section
+    const allMappedKeys = Object.values(KEYS).flat();
+    const ignoredKeys = [...allMappedKeys, 'NAME', 'Satus', 'Status', 'Code', 'CODE', 'Case', 'id', 'ITEM No.', 'Urgency'];
 
     Object.keys(item).forEach(key => {
         if (ignoredKeys.some(k => k.toLowerCase() === key.toLowerCase())) return;
@@ -435,7 +487,7 @@ function renderDetails(item) {
                 <span>Back</span>
             </button>
             <div class="flex items-center gap-2">
-                 <button onclick="requestUpdate('${item['ITEM No.']}')" id="btn-update-${item['ITEM No.']}" class="px-4 py-1.5 bg-brand-orange hover:bg-orange-600 text-white text-xs font-bold rounded-full flex items-center gap-2 shadow-lg shadow-orange-100 transition-all active:scale-95">
+                 <button onclick="requestUpdate('${getVal(item, KEYS.ID)}')" id="btn-update-${getVal(item, KEYS.ID)}" class="px-4 py-1.5 bg-brand-orange hover:bg-orange-600 text-white text-xs font-bold rounded-full flex items-center gap-2 shadow-lg shadow-orange-100 transition-all active:scale-95">
                     <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> 
                     <span class="hidden xs:inline">Request Update</span>
                     <span class="inline xs:hidden">Update</span>
@@ -450,14 +502,14 @@ function renderDetails(item) {
             <div class="mb-8">
                 <div class="flex flex-col md:flex-row justify-between items-start gap-6">
                     <div class="flex-1">
-                        <h2 class="text-4xl md:text-6xl font-black text-slate-900 mb-5 tracking-tight leading-[1.1]">${getValue('NAME')}</h2>
+                        <h2 class="text-4xl md:text-6xl font-black text-slate-900 mb-5 tracking-tight leading-[1.1]">${getVal(item, KEYS.NAME)}</h2>
                         <div class="flex flex-wrap items-center gap-3">
                             <span class="inline-flex items-center gap-2 px-5 py-2 rounded-2xl text-sm font-bold border transition-all shadow-sm ${statusBg}">
                                 <span class="text-xl">${statusEmoji}</span>
                                 <span class="uppercase tracking-widest">${statusVal}</span>
                             </span>
                             <span class="px-5 py-2 rounded-2xl text-sm font-bold uppercase tracking-widest shadow-sm border border-transparent ${urgencyColor}">${urgencyVal} Urgency</span>
-                            <span class="px-5 py-2 rounded-2xl text-sm font-bold bg-slate-100 text-slate-600 border border-slate-200 font-mono tracking-widest shadow-sm">${getValue('CODE') || '#'}</span>
+                            <span class="px-5 py-2 rounded-2xl text-sm font-bold bg-slate-100 text-slate-600 border border-slate-200 font-mono tracking-widest shadow-sm">${getVal(item, KEYS.CODE) || '#'}</span>
                         </div>
                     </div>
                 </div>
