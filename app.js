@@ -31,16 +31,16 @@ let allData = { clients: [], news: [] };
 
 // Robust Header Mapping
 const KEYS = {
-    NAME: ['NAME', 'Customer Name', 'Client Name', 'Home Buyer Name', 'Full Name'],
-    ID: ['ITEM No.', 'ID', 'Item Number', 'Customer ID', 'Item#'],
-    PHONE: ['PHONE No.', 'Phone', 'Contact Number', 'Mobile', 'Tel'],
-    STATUS: ['Satus', 'Status', 'Customer Status', 'Client Status', 'State'],
-    CODE: ['CODE', 'Project Code', 'Unit Code', 'Ref Code'],
+    NAME: ['Buyers Name', 'NAME', 'Customer Name', 'Client Name', 'Home Buyer Name', 'Full Name'],
+    ID: ['No.', 'ITEM No.', 'ID', 'Item Number', 'Customer ID', 'Item#'],
+    PHONE: ['Phone No.', 'PHONE No.', 'Phone', 'Contact Number', 'Mobile', 'Tel'],
+    STATUS: ['Customer status', 'Contract status', 'Customer Status', 'Satus', 'Status', 'Client Status', 'State'],
+    CODE: ['Sold Stock', 'CODE', 'Project Code', 'Unit Code', 'Ref Code'],
     URGENCY: ['Urgency', 'Priority', 'Level'],
-    TOTAL: ['TOTAL CONTRACT AMOUNT', 'Total Contract Value', 'Total Amount', 'Total'],
-    PAID: ['COLLECTED AMOUNT/DP', 'Collected', 'Paid Amount', 'Paid', 'DP'],
-    CONTRACT_DATE: ['Contract date', 'CONTRACT DATE', 'Date of Contract'],
-    CANCEL_DATE: ['Cancellation', 'CANCELLATION', 'Cancelation date', 'CANCELATION DATE'],
+    TOTAL: ['Total Contract Amount', 'TOTAL CONTRACT AMOUNT', 'Total Contract Value', 'Total Amount', 'Total'],
+    PAID: ['Amount paid', 'Collection Amount 1', 'COLLECTED AMOUNT/DP', 'Collected', 'Paid Amount', 'Paid', 'DP'],
+    CONTRACT_DATE: ['Date', 'Contract date', 'CONTRACT DATE', 'Date of Contract'],
+    CANCEL_DATE: ['Cancellation Date', 'Cancellation', 'CANCELLATION', 'Cancelation date', 'CANCELATION DATE'],
     ELAPSE_DATE: ['Elapse date', 'ELAPSE DATE', 'Deadline']
 };
 
@@ -302,13 +302,16 @@ function renderResults(matches) {
 
 // Global openDetails
 window.openDetails = function (id) {
-    if (!id || id === 'undefined' || id === 'null') {
+    if (id === undefined || id === null || id === '' || id === 'undefined' || id === 'null') {
         console.warn("Invalid ID passed to openDetails:", id);
         return;
     }
 
     console.log("Opening details for ID:", id);
-    const item = (allData.clients || []).find(r => String(getVal(r, KEYS.ID)) === String(id));
+    const item = (allData.clients || []).find(r => {
+        const itemId = getVal(r, KEYS.ID);
+        return String(itemId).trim() === String(id).trim();
+    });
 
     if (!item) {
         console.error("Could not find client with ID:", id, "Available IDs:", allData.clients.map(c => getVal(c, KEYS.ID)));

@@ -96,9 +96,9 @@ function handleRequest(e) {
             var colIdx = -1;
             for (var i = 0; i < headers.length; i++) {
                 var h = headers[i].toString().toLowerCase().trim();
-                if (h == "check bar" || h == "update requested" || h == "update requested:") { colIdx = i + 1; break; }
+                if (h == "check bar" || h == "update requested" || h == "update requested:" || h == "check for update") { colIdx = i + 1; break; }
             }
-            if (colIdx == -1) return jsonResponse({ "result": "error", "message": "Column 'Update Requested' not found" });
+            if (colIdx == -1) return jsonResponse({ "result": "error", "message": "Column 'Update Ordered' not found" });
 
             var rowIdx = -1;
             for (var j = 1; j < data.length; j++) {
