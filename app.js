@@ -34,7 +34,7 @@ const KEYS = {
     NAME: ['Buyers Name', 'NAME', 'Customer Name', 'Client Name', 'Home Buyer Name', 'Full Name'],
     ID: ['No.', 'ITEM No.', 'ID', 'Item Number', 'Customer ID', 'Item#'],
     PHONE: ['Phone No.', 'PHONE No.', 'Phone', 'Contact Number', 'Mobile', 'Tel'],
-    STATUS: ['Customer status', 'Contract status', 'Customer Status', 'Satus', 'Status', 'Client Status', 'State'],
+    STATUS: ['Contract status', 'Customer status', 'Customer Status', 'Satus', 'Status', 'Client Status', 'State'],
     CODE: ['Sold Stock', 'CODE', 'Project Code', 'Unit Code', 'Ref Code'],
     URGENCY: ['Urgency', 'Priority', 'Level'],
     TOTAL: ['Total Contract Amount', 'TOTAL CONTRACT AMOUNT', 'Total Contract Value', 'Total Amount', 'Total'],
