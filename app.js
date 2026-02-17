@@ -591,7 +591,10 @@ function renderDetails(item) {
                 <div class="flex-1 min-w-[140px] bg-amber-50/50 border border-amber-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-amber-50">
                     <p class="text-amber-600 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Elapse Date</p>
                     <p class="text-amber-800 font-bold text-base md:text-lg">${elapseDate}</p>
-        <div class="flex-1 min-w-[140px] bg-rose-50/50 border border-rose-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-rose-50">
+                </div>
+                ` : ''}
+                ${cancelDate && cancelDate !== '—' ? `
+                <div class="flex-1 min-w-[140px] bg-rose-50/50 border border-rose-100 p-4 rounded-2xl shadow-sm transition-all hover:bg-rose-50">
                     <p class="text-rose-500 text-[10px] uppercase font-extrabold tracking-[0.15em] mb-1">Cancellation Date</p>
                     <p class="text-rose-700 font-bold text-base md:text-lg">${cancelDate}</p>
                 </div>
