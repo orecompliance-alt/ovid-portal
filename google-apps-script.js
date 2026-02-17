@@ -93,20 +93,39 @@ function handleRequest(e) {
         if (action === "request_update" || action === "update") {
             var data = clientSheet.getDataRange().getValues();
             var headers = data[0];
-            var colIdx = -1;
+
+            // 1. Find ID column (No., ID, Item#, etc.)
+            var idColIdx = -1;
+            var idKeywords = ["no.", "id", "item#", "item number", "customer id", "buyers name", "name"]; // Try Name as fallback if ID missing
             for (var i = 0; i < headers.length; i++) {
                 var h = headers[i].toString().toLowerCase().trim();
-                if (h == "check bar" || h == "update requested" || h == "update requested:" || h == "check for update") { colIdx = i + 1; break; }
+                if (idKeywords.indexOf(h) !== -1) { idColIdx = i; break; }
             }
-            if (colIdx == -1) return jsonResponse({ "result": "error", "message": "Column 'Update Ordered' not found" });
+            if (idColIdx == -1) idColIdx = 0; // Fallback to first column
 
+            // 2. Find Update column (Check bar, Update Requested, Check for update, etc.)
+            var updateColIdx = -1;
+            var updateKeywords = ["check bar", "update requested", "check for update", "need update", "update ordered", "update status"];
+            for (var i = 0; i < headers.length; i++) {
+                var h = headers[i].toString().toLowerCase().trim();
+                // Check if header contains any of the keywords
+                for (var k = 0; k < updateKeywords.length; k++) {
+                    if (h.indexOf(updateKeywords[k]) !== -1) { updateColIdx = i + 1; break; }
+                }
+                if (updateColIdx !== -1) break;
+            }
+
+            if (updateColIdx == -1) return jsonResponse({ "result": "error", "message": "Column for 'Update' not found. Please ensure a column named 'Check For Update' exists." });
+
+            // 3. Find Row by ID
             var rowIdx = -1;
             for (var j = 1; j < data.length; j++) {
-                if (data[j][0].toString() == targetId) { rowIdx = j + 1; break; }
+                if (data[j][idColIdx].toString().trim() == targetId.toString().trim()) { rowIdx = j + 1; break; }
             }
-            if (rowIdx == -1) return jsonResponse({ "result": "error", "message": "ID not found" });
 
-            clientSheet.getRange(rowIdx, colIdx).setValue("Update Requested: " + new Date().toLocaleString() + " by " + userName);
+            if (rowIdx == -1) return jsonResponse({ "result": "error", "message": "Record ID '" + targetId + "' not found in column " + (idColIdx + 1) });
+
+            clientSheet.getRange(rowIdx, updateColIdx).setValue("Update Requested: " + new Date().toLocaleString() + " by " + userName);
             return jsonResponse({ "result": "success", "id": targetId });
         }
 
