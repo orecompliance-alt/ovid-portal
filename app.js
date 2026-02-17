@@ -41,7 +41,8 @@ const KEYS = {
     PAID: ['Amount paid', 'COLLECTED AMOUNT/DP', 'Collected', 'Paid Amount', 'Paid', 'DP'],
     CONTRACT_DATE: ['Date', 'Contract date', 'CONTRACT DATE', 'Date of Contract'],
     CANCEL_DATE: ['Cancellation Date', 'Cancellation', 'CANCELLATION', 'Cancelation date', 'CANCELATION DATE'],
-    ELAPSE_DATE: ['Elapse date', 'ELAPSE DATE', 'Deadline']
+    ELAPSE_DATE: ['Elapse date', 'ELAPSE DATE', 'Deadline'],
+    SITE: ['Site', 'Project Site', 'Location']
 };
 
 function getVal(row, keySet) {
@@ -426,6 +427,7 @@ function renderDetails(item) {
     const contractDate = formatDate(getValue('CONTRACT_DATE'));
     const cancelDate = formatDate(getValue('CANCEL_DATE'));
     const elapseDate = formatDate(getValue('ELAPSE_DATE'));
+    const siteVal = String(getValue('SITE') || 'N/A');
 
     // Grouping Logic
     const sections = {
@@ -440,7 +442,7 @@ function renderDetails(item) {
     const financialKeys = ['Amount paid', 'Remaining Amount', 'Total Contract Amount', 'Collection Amount', 'Amendment payment', 'Refund Amount', 'Vat Amount', 'Paid', 'Balance', 'Price'];
 
     // Only ignore keys explicitly shown in the main header/stats board
-    const boardKeys = ['NAME', 'Buyers Name', 'No.', 'ITEM No.', 'Status', 'Contract status', 'Customer status', 'Urgency', 'Date', 'Contract date', 'Cancellation Date', 'Elapse date'];
+    const boardKeys = ['NAME', 'Buyers Name', 'No.', 'ITEM No.', 'Status', 'Contract status', 'Customer status', 'Urgency', 'Date', 'Contract date', 'Cancellation Date', 'Elapse date', 'Site'];
     const ignoredKeys = boardKeys.map(k => k.toLowerCase().trim());
 
     Object.keys(item).forEach(key => {
@@ -448,7 +450,9 @@ function renderDetails(item) {
         if (ignoredKeys.includes(kLower)) return;
 
         let val = item[key];
-        let displayVal = (val === null || val === undefined || String(val).trim() === '') ? '—' : String(val);
+        if (val === null || val === undefined || String(val).trim() === '' || String(val).trim() === '—') return;
+
+        let displayVal = String(val);
         displayVal = formatDate(displayVal);
 
         // Auto-format currency for financial-looking keys
@@ -520,6 +524,7 @@ function renderDetails(item) {
                             </span>
                             <span class="px-5 py-2 rounded-2xl text-sm font-bold uppercase tracking-widest shadow-sm border border-transparent ${urgencyColor}">${urgencyVal} Urgency</span>
                             <span class="px-5 py-2 rounded-2xl text-sm font-bold bg-slate-100 text-slate-600 border border-slate-200 font-mono tracking-widest shadow-sm">${getVal(item, KEYS.CODE) || '#'}</span>
+                            <span class="px-5 py-2 rounded-2xl text-sm font-bold bg-slate-100 text-brand-500 border border-slate-200 font-mono tracking-widest shadow-sm">${siteVal}</span>
                         </div>
                     </div>
                 </div>
