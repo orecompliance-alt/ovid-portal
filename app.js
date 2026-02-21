@@ -26,6 +26,9 @@ const USER_NAME = getUserName();
 // PASTE YOUR GOOGLE SCRIPT URL HERE AFTER DEPLOYING
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxahv-0UjHWai2VWBdv6eR8Jl6T9UrmIH9R9REoz6jbru0s3zaiNHEXQbwSaluR2rm_/exec';
 
+// Exchange Rate Configuration
+const USD_TO_ETB_RATE = 135; // Update this as needed
+
 const dom = {};
 let allData = { clients: [], news: [] };
 
@@ -427,11 +430,21 @@ function renderDetails(item) {
     const isProtectedKey = (key) => /phone|code|date|no\.|(\bid\b)|case|item/i.test(key);
 
     const formatCurrency = (val) => {
-        const num = cleanNumber(val);
-        return new Intl.NumberFormat('en-US', {
+        const strVal = String(val || '');
+        const isUSD = strVal.includes('$');
+        const num = cleanNumber(strVal);
+
+        const formatted = new Intl.NumberFormat('en-US', {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
-        }).format(num) + ' ETB';
+        }).format(num);
+
+        if (isUSD) {
+            const etbEquiv = Math.round(num * USD_TO_ETB_RATE);
+            const formattedETB = new Intl.NumberFormat('en-US').format(etbEquiv);
+            return `$${formatted} <span class="text-[10px] opacity-60 font-normal ml-1">(${formattedETB} ETB)</span>`;
+        }
+        return formatted + ' ETB';
     };
 
     const formatDate = (val) => {
