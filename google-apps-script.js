@@ -60,8 +60,8 @@ function handleRequest(e) {
         // ACTION: GET DATA
         if (action === "getData") {
             var responseData = { clients: [], news: [] };
-            var clientData = clientSheet.getDataRange().getValues();
-            var clientHeaders = clientData[0];
+            var clientData = clientSheet.getDataRange().getDisplayValues();
+            var clientHeaders = clientSheet.getRange(1, 1, 1, clientSheet.getLastColumn()).getValues()[0];
 
             for (var i = 1; i < clientData.length; i++) {
                 var row = clientData[i];
@@ -74,8 +74,8 @@ function handleRequest(e) {
             }
 
             if (newsSheet) {
-                var newsData = newsSheet.getDataRange().getValues();
-                var newsHeaders = newsData[0];
+                var newsData = newsSheet.getDataRange().getDisplayValues();
+                var newsHeaders = newsSheet.getRange(1, 1, 1, newsSheet.getLastColumn()).getValues()[0];
                 for (var k = 1; k < newsData.length; k++) {
                     var nRow = newsData[k];
                     var nObj = {};
