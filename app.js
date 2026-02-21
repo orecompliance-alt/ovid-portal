@@ -1,6 +1,7 @@
 // SECURITY & SESSION
 const DEVICE_ID_KEY = 'ore_device_id';
 const USER_NAME_KEY = 'ore_user_name';
+const APP_VERSION = '1.0.5'; // Added for cache verification
 
 // GET or CREATE Device ID
 function getDeviceId() {
@@ -430,8 +431,20 @@ function renderDetails(item) {
     const isProtectedKey = (key) => /phone|code|date|no\.|(\bid\b)|case|item/i.test(key);
 
     const isUSDClient = (() => {
-        // Aggressively scan EVERY field for a "$" symbol
-        return Object.values(item).some(val => String(val || '').includes('$'));
+        // Aggressively scan EVERY field for "$" or "USD"
+        const hasSymbol = Object.values(item).some(val => {
+            const s = String(val || '').toUpperCase();
+            return s.includes('$') || s.includes('USD');
+        });
+        if (hasSymbol) return true;
+
+        // Specific check for "Collection Amount" or "Amount Paid" even if mapping is slightly off
+        for (const key in item) {
+            if (/collection|amount|paid/i.test(key)) {
+                if (String(item[key] || '').includes('$')) return true;
+            }
+        }
+        return false;
     })();
 
     const formatCurrency = (val) => {
@@ -787,3 +800,6 @@ function showError(msg) {
     dom.error.innerHTML = msg;
     dom.error.classList.remove('hidden');
 }
+
+// Version display for debugging
+console.log("ORE Portal Version:", APP_VERSION);
