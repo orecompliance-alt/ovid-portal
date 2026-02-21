@@ -69,15 +69,26 @@ function ethiopianToGregorian(year, month, day) {
 }
 
 function parseAndNormalizeDate(dateStr) {
-    if (!dateStr || typeof dateStr !== 'string' || dateStr === '—') return null;
+    if (!dateStr || dateStr === '—') return null;
 
-    // Support YYYY-MM-DD, YYYY/MM/DD, etc.
-    const parts = dateStr.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
-    if (!parts) return null;
+    let y, m, d;
 
-    let y = parseInt(parts[1]);
-    let m = parseInt(parts[2]);
-    let d = parseInt(parts[3]);
+    // Handle Date objects (GAS might return these)
+    if (dateStr instanceof Date || (typeof dateStr === 'object' && dateStr.getTime)) {
+        y = dateStr.getFullYear();
+        m = dateStr.getMonth() + 1;
+        d = dateStr.getDate();
+    } else if (typeof dateStr === 'string') {
+        // Support YYYY-MM-DD, YYYY/MM/DD, and ISO strings
+        const parts = dateStr.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+        if (!parts) return null;
+        y = parseInt(parts[1]);
+        m = parseInt(parts[2]);
+        d = parseInt(parts[3]);
+    } else {
+        console.warn("Unsupported date format:", dateStr);
+        return null;
+    }
 
     // Heuristic: If year < 2023, assume Ethiopian
     if (y < 2023) {
@@ -87,22 +98,31 @@ function parseAndNormalizeDate(dateStr) {
 }
 
 function calculateElapsed(startDateStr) {
-    const start = parseAndNormalizeDate(startDateStr);
-    if (!start) return '—';
+    try {
+        const start = parseAndNormalizeDate(startDateStr);
+        if (!start) return '—';
 
-    const now = new Date();
-    const diffTime = now - start;
-    if (diffTime < 0) return 'Future Date';
+        const now = new Date();
+        const diffTime = now - start;
 
-    const totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        // Use Math.ceil or a small buffer to avoid -1 due to timezone millisecond shifts
+        if (diffTime < -1000 * 60 * 60 * 2) { // More than 2 hours in the future
+            return 'Future Date';
+        }
 
-    if (totalDays < 30) {
-        return `${totalDays} days`;
-    } else {
-        const months = Math.floor(totalDays / 30);
-        const days = totalDays % 30;
-        if (days === 0) return `${months} month${months > 1 ? 's' : ''}`;
-        return `${months} month${months > 1 ? 's' : ''} + ${days} day${days > 1 ? 's' : ''}`;
+        const totalDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+
+        if (totalDays < 30) {
+            return `${totalDays} days`;
+        } else {
+            const months = Math.floor(totalDays / 30);
+            const days = totalDays % 30;
+            if (days === 0) return `${months} month${months > 1 ? 's' : ''}`;
+            return `${months} month${months > 1 ? 's' : ''} + ${days} day${days > 1 ? 's' : ''}`;
+        }
+    } catch (e) {
+        console.error("Error calculating elapsed date:", e, startDateStr);
+        return '—';
     }
 }
 
