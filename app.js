@@ -28,7 +28,22 @@ const USER_NAME = getUserName();
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxahv-0UjHWai2VWBdv6eR8Jl6T9UrmIH9R9REoz6jbru0s3zaiNHEXQbwSaluR2rm_/exec';
 
 // Exchange Rate Configuration
-const USD_TO_ETB_RATE = 135; // Update this as needed
+let USD_TO_ETB_RATE = 156.0599; // Default/Fallback rate
+const RATE_API = 'https://open.er-api.com/v6/latest/USD';
+
+async function fetchExchangeRate() {
+    try {
+        console.log("Fetching latest USD/ETB rate...");
+        const response = await fetch(RATE_API);
+        const data = await response.json();
+        if (data && data.rates && data.rates.ETB) {
+            USD_TO_ETB_RATE = data.rates.ETB;
+            console.log("Current Market Rate Updated:", USD_TO_ETB_RATE);
+        }
+    } catch (e) {
+        console.warn("Could not fetch market rate, using fallback:", USD_TO_ETB_RATE);
+    }
+}
 
 const dom = {};
 let allData = { clients: [], news: [] };
@@ -177,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.displayDeviceId = document.getElementById('displayDeviceId');
 
     fetchData();
+    fetchExchangeRate(); // Get market rate on load
     setupEventListeners();
     setupPullToRefresh();
 });
