@@ -430,12 +430,8 @@ function renderDetails(item) {
     const isProtectedKey = (key) => /phone|code|date|no\.|(\bid\b)|case|item/i.test(key);
 
     const isUSDClient = (() => {
-        const financialKeysToSearch = ['Collection Amount', 'Amount paid', 'Total Contract Amount', 'Paid', 'Total', 'Collected'];
-        for (const k of financialKeysToSearch) {
-            const rawVal = String(getValue(k) || '');
-            if (rawVal.includes('$')) return true;
-        }
-        return false;
+        // Aggressively scan EVERY field for a "$" symbol
+        return Object.values(item).some(val => String(val || '').includes('$'));
     })();
 
     const formatCurrency = (val) => {
