@@ -429,9 +429,17 @@ function renderDetails(item) {
     const isCurrencyKey = (key) => /amount|paid|total|remaining|balance|price|contract|cost|payment/i.test(key);
     const isProtectedKey = (key) => /phone|code|date|no\.|(\bid\b)|case|item/i.test(key);
 
+    const isUSDClient = (() => {
+        const financialKeysToSearch = ['Collection Amount', 'Amount paid', 'Total Contract Amount', 'Paid', 'Total', 'Collected'];
+        for (const k of financialKeysToSearch) {
+            const rawVal = String(getValue(k) || '');
+            if (rawVal.includes('$')) return true;
+        }
+        return false;
+    })();
+
     const formatCurrency = (val) => {
         const strVal = String(val || '');
-        const isUSD = strVal.includes('$');
         const num = cleanNumber(strVal);
 
         const formatted = new Intl.NumberFormat('en-US', {
@@ -439,7 +447,7 @@ function renderDetails(item) {
             maximumFractionDigits: 0
         }).format(num);
 
-        if (isUSD) {
+        if (isUSDClient || strVal.includes('$')) {
             const etbEquiv = Math.round(num * USD_TO_ETB_RATE);
             const formattedETB = new Intl.NumberFormat('en-US').format(etbEquiv);
             return `$${formatted} <span class="text-[10px] opacity-60 font-normal ml-1">(${formattedETB} ETB)</span>`;
