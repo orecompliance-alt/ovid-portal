@@ -45,6 +45,68 @@ const KEYS = {
     SITE: ['Site', 'Project Site', 'Location']
 };
 
+/**
+ * Ethiopian Calendar to Gregorian conversion (Resilient Logic)
+ * Ethiopian year 1900+ range.
+ */
+function ethiopianToGregorian(year, month, day) {
+    // 1723856 is the Julian Day offset for Ethiopian calendar
+    let era = 1723856;
+    let jdn = (year - 1) * 365 + Math.floor(year / 4) + (month - 1) * 30 + day + era;
+
+    // Convert Julian Day to Gregorian Date
+    let l = jdn + 68569;
+    let n = Math.floor((4 * l) / 146097);
+    l = l - Math.floor((146097 * n + 3) / 4);
+    let i = Math.floor((4000 * (l + 1)) / 1461001);
+    l = l - Math.floor((1461 * i) / 4) + 31;
+    let j = Math.floor((80 * l) / 2447);
+    let d = l - Math.floor((2447 * j) / 80);
+    l = Math.floor(j / 11);
+    let m = j + 2 - 12 * l;
+    let y = 100 * (n - 49) + i + l;
+
+    return new Date(y, m - 1, d);
+}
+
+function parseAndNormalizeDate(dateStr) {
+    if (!dateStr || typeof dateStr !== 'string' || dateStr === '—') return null;
+
+    // Support YYYY-MM-DD, YYYY/MM/DD, etc.
+    const parts = dateStr.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+    if (!parts) return null;
+
+    let y = parseInt(parts[1]);
+    let m = parseInt(parts[2]);
+    let d = parseInt(parts[3]);
+
+    // Heuristic: If year < 2023, assume Ethiopian
+    if (y < 2023) {
+        return ethiopianToGregorian(y, m, d);
+    }
+    return new Date(y, m - 1, d);
+}
+
+function calculateElapsed(startDateStr) {
+    const start = parseAndNormalizeDate(startDateStr);
+    if (!start) return '—';
+
+    const now = new Date();
+    const diffTime = now - start;
+    if (diffTime < 0) return 'Future Date';
+
+    const totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (totalDays < 30) {
+        return `${totalDays} days`;
+    } else {
+        const months = Math.floor(totalDays / 30);
+        const days = totalDays % 30;
+        if (days === 0) return `${months} month${months > 1 ? 's' : ''}`;
+        return `${months} month${months > 1 ? 's' : ''} + ${days} day${days > 1 ? 's' : ''}`;
+    }
+}
+
 function getVal(row, keySet) {
     if (!row) return null;
     if (typeof keySet === 'string') keySet = [keySet];
@@ -426,7 +488,9 @@ function renderDetails(item) {
 
     const contractDate = formatDate(getValue('CONTRACT_DATE'));
     const cancelDate = formatDate(getValue('CANCEL_DATE'));
-    const elapseDate = formatDate(getValue('ELAPSE_DATE'));
+    // Calculate Elapse Date based on Cancellation Date
+    const rawCancelDate = getValue('CANCEL_DATE');
+    const elapseDate = calculateElapsed(rawCancelDate);
     const siteVal = String(getValue('SITE') || 'N/A');
 
     // Grouping Logic
